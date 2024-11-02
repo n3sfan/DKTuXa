@@ -1,0 +1,79 @@
+
+Ý NGHĨA: Action = tính năng
+(+) = Làm thêm nếu có thời gian, sau khi xong action chính. 
+... = điền vào thêm như yêu cầu của thầy
+
+MÔ HÌNH:
+Request: Yêu cầu Action
+Response: Message trả về sau khi thực hiện Action
+======> Client - Server: Protocol 2. giao tiếp = Socket (win32) 
+
+
+		    Mail		     Request
+Admin <-------------> Client ----------------> Servers
+							 <----------------
+									  Response
+						
+						
+		
+CLIENT:
+- Listen to mailbox (dùng IMAP, SMTP). Message:
++ IP server nào
++ Action
++ Request content (class)
+ 
+- Gửi request tới Server (Protocol 2) = Socket. Message gửi gồm:
++ Action
++ Request content
+- Nhận response từ Server
+
+SERVER:
+- Các tính năng
+- Listen to client request (Protocol 2) = Socket. Sau khi thực hiện action thì gửi response
+
+	ACTION : Request luôn có IP. Các action nếu thành công thì trả response có kết quả (hoặc Ok), ko thì lý do lỗi.
+	1. Shutdown
+	* Request: 
+	* Response: Ok? Ko thì trả về lỗi. 
+	(+) thời gian shutdown.
+	(+) check đã shutdown.
+		
+	2. App List/Start/Stop
+	* Request: nếu Start/Stop: Tên app (hay danh sách app).
+	(+) Làm thêm: Argument: hiện % memory, % cpu, ....
+	* Response: 
+	- List App: các app, trình bày đẹp. 
+	- Start/Stop: Ok? Ko ok trả về lỗi.
+	(+) Trả về như argument
+
+	3. Services List /...
+	* Request: nếu Start/Stop: Tên service (hay danh sách service).
+	* Response: 
+	- List: các service, trình bày đẹp. 
+	- Start/Stop: Ok? Ko ok trả về lỗi.
+
+	4. File Lấy/Xóa
+	* Request: đường dẫn file
+	* Response:
+	- Lấy: File
+	- Xóa: Ok? ko thì lỗi.
+
+	5. Screenshot
+	* Request: 
+	* Response:
+	- Hình.
+	(+) screenshot của app
+
+	6. Webcam Start/Stop 
+	* Request:
+	* Response:
+	- Start: Ok?
+	- Stop: video
+
+	7. Keylogger Start/Stop
+	* Request 
+	* Response:
+	- Start: Ok?
+	- Stop: keylog
+
+ADMIN: (+) UI cho Admin
