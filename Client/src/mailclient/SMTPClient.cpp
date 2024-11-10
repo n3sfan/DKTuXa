@@ -104,6 +104,7 @@ const bool CSMTPClient::PrePerform()
 
    switch (m_eOperationType)
    {
+      // BEGIN EDIT
       case SMTP_SEND_MIME:
          curl_easy_setopt(m_pCurlSession, CURLOPT_MAIL_FROM, m_strFrom.c_str());
          m_rcpts = NULL;
@@ -138,6 +139,7 @@ const bool CSMTPClient::PrePerform()
 
          curl_easy_setopt(m_pCurlSession, CURLOPT_MIMEPOST, m_mime);
          break;
+      // END
       case SMTP_SEND_STRING:
          if (!m_strFrom.empty() && !m_strTo.empty())
          {

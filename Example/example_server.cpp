@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 // Need to link with Ws2_32.lib
-#pragma comment (lib, "Ws2_32.lib")
+#pragma comment (lib, "ws2_32.lib")
 // #pragma comment (lib, "Mswsock.lib")
 
 #define DEFAULT_BUFLEN 512
@@ -94,7 +94,6 @@ int __cdecl main(void)
 
     // Receive until the peer shuts down the connection
     do {
-
         iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
         if (iResult > 0) {
             printf("Bytes received: %d\n", iResult);

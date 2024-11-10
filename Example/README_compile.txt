@@ -1,3 +1,3 @@
-g++ example_client.cpp -lws2_32 -lmswsock -ladvapi32 -o example_client.exe
+g++ example_client.cpp C:/Windows/System32/ws2_32.dll C:/Windows/System32/mswsock.dll C:/Windows/System32/advapi32.dll -o example_client.exe
 
-g++ example_server.cpp -lws2_32 -o example_server.exe
+g++ main.cpp C:\Windows\System32\ws2_32.dll -o example_server.exe
