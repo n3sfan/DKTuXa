@@ -18,6 +18,7 @@ const string kBody = "Body";
 enum Action {
     ACTION_INVALID,
     ACTION_SHUTDOWN,
+    ACTION_RESTART,
     ACTION_APP,
     ACTION_SERVICES,
     ACTION_FILE,

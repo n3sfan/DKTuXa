@@ -7,6 +7,7 @@
 class Server {
     public:
         void shutdownSystem();
+        void restartSystem();
         bool keylog(Request& request, Response &response);
         bool processRequest(Request& request, Response &response);
 };
