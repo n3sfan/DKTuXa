@@ -1,5 +1,5 @@
 #include "Server.h"
-
+#include "App.h"
 #include "KeyLogger.h"
 
 bool Server::keylog(Request& request, Response &response) {
@@ -29,6 +29,71 @@ bool Server::keylog(Request& request, Response &response) {
     return true;
 }
 
+bool Server::handleShutdownSystem(Request& request, Response &response){
+    App app;
+    app.shutdownSystem();
+    response.putParam(kStatus, "Shutdown initiated");
+    return true;
+}
+bool Server::handleRestartSystem(Request& request, Response &response){
+    App app;
+    app.restartSystem();
+    response.putParam(kStatus, "Restart initiated");
+    return true;
+}
+
+bool Server::listRunningApps(Request& request, Response &response){
+    App app;
+    std::vector<std::string> appList = app.getRunningTaskbarApps();
+    std::string appList_str = "Running Application: \n";
+    for (int i = 0; i < appList.size(); i++){
+        appList_str += std::to_string(i + 1) + ". " + appList[i] + "\n";
+    }
+    response.putParam(kBody, appList_str);
+    return true;
+}
+
+bool Server::closeApp(Request& request, Response& response){
+    App app;
+    std::vector<std::string> appList = app.getRunningTaskbarApps();
+
+    int appIndex = std::stoi(request.getParam("AppIndex"));
+    if (appIndex <= 0 || appIndex > appList.size()){
+        response.putParam(kStatus, "Invalid index");
+        return false;
+    }
+    std::string appName = appList[appIndex - 1];
+    bool success = app.closeApplication(appName);
+    response.putParam(kStatus, success ? "Closed" : "Failed to close");
+    return true;
+}
+
+bool Server::listInstalledApps(Request& request, Response& response){
+    App app;
+    std::vector<AppInfo> appList = app.getInstalledApps();
+    std::string appList_str = "Installed application: \n";
+    for (int i = 0; i < appList.size(); i++){
+        appList_str += std::to_string(i + 1) + ". " + appList[i].name + "\n";
+    }
+    response.putParam(kBody, appList_str);
+    return true;
+}
+
+bool Server::runApp(Request& request, Response &response){
+    App app;
+    std::vector<AppInfo> appList = app.getInstalledApps();
+
+    int appIndex = std::stoi(request.getParam("AppIndex"));
+    if (appIndex <= 0 || appIndex > appList.size()){
+        response.putParam(kStatus, "Invalid index");
+        return false;
+    }
+    std::string appPath = appList[appIndex - 1].fullpath;
+    bool success = app.runApplication(appPath);
+    response.putParam(kBody, success ? "App is running" : "Failed to run");
+    return true;
+}
+
 bool Server::processRequest(Request& request, Response &response) {
     cout << "Processing Request\n" << request << "\n";
     response.setAction(request.getAction());
@@ -37,6 +102,10 @@ bool Server::processRequest(Request& request, Response &response) {
     switch (request.getAction()) {
         case ACTION_KEYLOG:
             return keylog(request, response);
+        case ACTION_SHUTDOWN:
+            return handleShutdownSystem(request, response);
+        case ACTION_RESTART:
+            return handleRestartSystem(request, response);
         default:
             return false;
     }
