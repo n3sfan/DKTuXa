@@ -8,6 +8,10 @@ string toLower(string s) {
     return s;
 }
 
+bool startsWith(string s, string prefix) {
+    return s.size() >= prefix.size() && s.substr(0, prefix.size()) == prefix;
+}
+
 vector<string> split(string s, string delim) {
     vector<string> res;
     int pos = 0, nxt = s.size();
@@ -15,16 +19,16 @@ vector<string> split(string s, string delim) {
         res.push_back(s.substr(pos, nxt - pos)); 
         pos = nxt + delim.size();
     }
-    res.push_back(s.substr(pos, nxt - pos));
+    res.push_back(s.substr(pos));
     return res; 
 }
 
 string trim(string s) {
     int i = 0;
-    while (i < s.size() && s[i] == ' ')
+    while (i < s.size() && isspace(s[i]))
         ++i;
     int j = (int)s.size() - 1;
-    while (j >= 0 && s[j] == ' ')
+    while (j >= 0 && isspace(s[j]))
         --j;
     
     if (i > j) 

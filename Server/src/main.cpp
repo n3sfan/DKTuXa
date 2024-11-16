@@ -17,11 +17,10 @@
 
 using namespace std;
 
-#define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "4444"
 
+
 SOCKET ListenSocket = INVALID_SOCKET;
-KeyLogger keylog;
 atomic_bool stopServer;
 
 // TODO NOTIFY ON ERROR
@@ -35,8 +34,6 @@ int server() {
     struct addrinfo hints;
 
     int iSendResult;
-    char recvbuf[DEFAULT_BUFLEN];
-    int recvbuflen = DEFAULT_BUFLEN;
     
     // Initialize Winsock
     iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
@@ -69,7 +66,7 @@ int server() {
     }
 
     // Setup the TCP listening socket
-    iResult = bind( ListenSocket, result->ai_addr, (int)result->ai_addrlen);
+    iResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
     if (iResult == SOCKET_ERROR) {
         printf("bind failed with error: %d\n", WSAGetLastError());
         freeaddrinfo(result);
@@ -84,6 +81,8 @@ int server() {
     cout << "Server started!\n";
 
     Server server;
+    unique_ptr<char[]> recvbuf(new char[8192]());
+    const int recvbuflen = 8192;
 
     // Server loop
     while (!stopServer) {
@@ -107,14 +106,14 @@ int server() {
         // Receive request
         int len = 0; 
         string s; 
-        while ((iResult = recv(ClientSocket, recvbuf, recvbuflen, 0)) > 0) {
+        while ((iResult = recv(ClientSocket, recvbuf.get(), recvbuflen, 0)) > 0) {
             if (iResult < 0) {
                 // NOTIFY
                 break;
             }
 
             len += iResult;
-            s += string(recvbuf, iResult);
+            s += string(recvbuf.get(), iResult);
         }
     
         // printf("Bytes received: %d\n", len);

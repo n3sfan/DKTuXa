@@ -31,7 +31,8 @@ public:
       FLAGGED,
       NEW,
       RECENT,
-      SEEN
+      SEEN,
+      UNSEEN
    };
 
 
@@ -56,7 +57,7 @@ public:
    const bool SendFile(const std::string& strPath);
 
    /* retrieve e-mail and save its content in strOutput */
-   const bool GetString(const std::string& strMsgNumber, std::string& strOutput);
+   const bool GetString(const std::string& strMsgNumber, std::string& strOutput, bool requestBody = false);
 
    /* retrieve e-mail and save its content in a file */
    const bool GetFile(const std::string& strMsgNumber, const std::string& strFilePath);
@@ -122,6 +123,7 @@ protected:
    std::string          m_strMsgNumber;
    std::string          m_strFolderName;
    std::string*         m_pstrText;
+   bool                 m_requestBody = false;
 
 };
 
