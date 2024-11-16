@@ -106,6 +106,22 @@ bool Server::processRequest(Request& request, Response &response) {
             return handleShutdownSystem(request, response);
         case ACTION_RESTART:
             return handleRestartSystem(request, response);
+        case ACTION_APP:
+        {
+            std::string subAction = request.getParam(kSubAction);
+            if (subAction == "listrunningapps")
+                return listRunningApps(request, response);
+            else if (subAction == "closeapp")
+                return closeApp(request, response);
+            else if (subAction == "listinstalledapps")
+                return listInstalledApps(request, response);
+            else if (subAction == "runapp")
+                return runApp(request, response);
+            else {
+                response.putParam(kStatus, "Invalid subaction");
+                return false;
+            }
+        }
         default:
             return false;
     }
