@@ -12,6 +12,7 @@ class Server {
         bool listInstalledApps(Request& request, Response& response);
         bool closeApp(Request& request, Response& response);
         bool runApp(Request& request, Response& response);
+        bool handleApp(Request& request, Response& response);
         
         // Thinh
         bool keylog(Request& request, Response &response);

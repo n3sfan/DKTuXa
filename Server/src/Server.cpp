@@ -94,6 +94,22 @@ bool Server::runApp(Request& request, Response &response){
     return true;
 }
 
+bool Server::handleApp(Request& request, Response& response){
+    std::string subAction = request.getParam(kSubAction);
+    if (subAction == "listrunningapps")
+        return listRunningApps(request, response);
+    else if (subAction == "closeapp")
+        return closeApp(request, response);
+    else if (subAction == "listinstalledapps")
+        return listInstalledApps(request, response);
+    else if (subAction == "runapp")
+        return runApp(request, response);
+    else{
+        response.putParam(kStatus, "Invalid subaction");
+        return false;
+    }
+}
+
 bool Server::processRequest(Request& request, Response &response) {
     cout << "Processing Request\n" << request << "\n";
     response.setAction(request.getAction());
@@ -107,21 +123,7 @@ bool Server::processRequest(Request& request, Response &response) {
         case ACTION_RESTART:
             return handleRestartSystem(request, response);
         case ACTION_APP:
-        {
-            std::string subAction = request.getParam(kSubAction);
-            if (subAction == "listrunningapps")
-                return listRunningApps(request, response);
-            else if (subAction == "closeapp")
-                return closeApp(request, response);
-            else if (subAction == "listinstalledapps")
-                return listInstalledApps(request, response);
-            else if (subAction == "runapp")
-                return runApp(request, response);
-            else {
-                response.putParam(kStatus, "Invalid subaction");
-                return false;
-            }
-        }
+            return handleApp(request, response);
         default:
             return false;
     }
