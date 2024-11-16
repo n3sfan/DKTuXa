@@ -66,10 +66,11 @@ const bool CIMAPClient::Fetch(const std::string& strMsgNumber, std::string& strO
 }
 // END
 
-const bool CIMAPClient::GetString(const std::string& strMsgNumber, std::string& strOutput)
+const bool CIMAPClient::GetString(const std::string& strMsgNumber, std::string& strOutput, bool requestBody)
 {
    m_strMsgNumber = strMsgNumber;
    m_pstrText = &strOutput;
+   m_requestBody = requestBody;
    m_eOperationType = IMAP_RETR_STRING;
 
    return Perform();
@@ -301,8 +302,15 @@ const bool CIMAPClient::PrePerform()
          break;
 
       case IMAP_RETR_STRING:
-         if (!m_strMsgNumber.empty())
-            strRequestURL += "INBOX/;MAILINDEX=" + m_strMsgNumber + ";SECTION=TEXT";
+         if (!m_strMsgNumber.empty()) {
+            strRequestURL += "INBOX/;MAILINDEX=" + m_strMsgNumber;
+         
+            if (m_requestBody) {
+               strRequestURL += ";SECTION=TEXT";
+            } else {
+               strRequestURL += ";SECTION=HEADER.FIELDS%20(SUBJECT%20FROM)";
+            }
+         }
          else
             return false;
 
@@ -404,22 +412,24 @@ const bool CIMAPClient::PrePerform()
          else
             return false;
 
-         strRequestURL += "INBOX";
+         strRequestURL += "INBOX?";
 
          if (m_eSearchOption == SearchOption::ANSWERED)
-            strCmd = "ANSWERED";
+            strRequestURL += "ANSWERED";
          else if (m_eSearchOption == SearchOption::DELETED)
-            strCmd = "DELETED";
+            strRequestURL += "DELETED";
          else if (m_eSearchOption == SearchOption::DRAFT)
-            strCmd = "DRAFT";
+            strRequestURL += "DRAFT";
          else if (m_eSearchOption == SearchOption::FLAGGED)
-            strCmd = "FLAGGED";
+            strRequestURL += "FLAGGED";
          else if (m_eSearchOption == SearchOption::NEW)
-            strCmd = "NEW";
+            strRequestURL += "NEW";
          else if (m_eSearchOption == SearchOption::RECENT)
-            strCmd = "RECENT";
+            strRequestURL += "RECENT";
          else if (m_eSearchOption == SearchOption::SEEN)
-            strCmd = "SEEN";
+            strRequestURL += "SEEN";
+         else if (m_eSearchOption == SearchOption::UNSEEN) 
+            strRequestURL += "UNSEEN";
          else
          {
             return false;
@@ -430,7 +440,7 @@ const bool CIMAPClient::PrePerform()
          * keywords including flags such as ANSWERED, DELETED, DRAFT, FLAGGED, NEW,
          * RECENT and SEEN. For more information about the search criteria please
          * see RFC-3501 section 6.4.4.   */
-         curl_easy_setopt(m_pCurlSession, CURLOPT_CUSTOMREQUEST, ("SEARCH " + strCmd).c_str());
+         // curl_easy_setopt(m_pCurlSession, CURLOPT_CUSTOMREQUEST, ("SEARCH " + strCmd).c_str());
 
          break;
 

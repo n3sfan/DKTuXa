@@ -3,6 +3,8 @@
 #include <utility>
 #include <cstring>
 #include <iostream>
+#include <fstream>
+#include <cstdio>
 
 #include "Utils.h"
 
@@ -32,8 +34,15 @@ Action getAction(string name) {
     return ACTION_INVALID;
 }
 
+Request::~Request() {
+}
+
 map<string, string>& Request::getParams() {
     return params;
+}
+
+void Request::setParams(const map<string, string> &params) {
+    this->params = params;
 }
 
 void Request::putParam(string key, string value) {
@@ -44,6 +53,15 @@ string Request::getParam(string key) {
     return params[key];
 }
 
+void Request::setAction(Action action) {
+    this->action = action;
+}
+
+Action Request::getAction() const {
+    return action;
+}
+
+/* Socket */
 string Request::serialize() const {
     int len = 4 + sizeof(Action); // total len + action number
     for (const pair<string, string>& pr : params) {
@@ -112,14 +130,77 @@ void Request::deserialize(const string &s) {
     }
 }
 
-void Request::setAction(Action action) {
-    this->action = action;
+/* Mail */
+void Request::toMailString(string &subject, string &body) const {
+    // subject = toString(action);
+    body = "";
+    
+    for (const pair<string, string>& pr : params) {
+        body += pr.first;
+        body += ": ";
+        body += pr.second;
+        body += "\r\n";
+    }
 }
 
-Action Request::getAction() const {
-    return action;
+void Request::parseFromMail(const string &mailHeaders, const string &mailBody, string &mailFrom, string &mailSubject) {
+    bool body = false;
+    int pos = mailHeaders.find("From: ");
+    int pos2 = mailHeaders.find("<", pos + 6 + 1);
+    int pos3 = mailHeaders.find(">", pos2 + 1);
+    mailFrom = mailHeaders.substr(pos2 + 1, pos3 - pos2 - 1);
+
+    pos = mailHeaders.find("Subject: ");
+    pos2 = mailHeaders.find("\r\n", pos + 9 + 1);
+    mailSubject = mailHeaders.substr(pos + 9, pos2 - pos - 1); 
+    action = ::getAction(mailSubject);
+
+    // MIME Format
+    vector<string> lines = split(mailBody, "\r\n");
+    int n = (int)lines.size();
+    for (int i = 0; i < n; ++i) {
+        if (startsWith(lines[i], "Content-Type: text/plain")) {
+            body = true;
+        } else if (startsWith(lines[i], "--")) {
+            body = false;
+        } else if (body) {
+            vector<string> entry = split(lines[i], ": ");
+            if (entry.size() == 2) // in case empty break line
+                putParam(entry[0], entry[1]);
+        }
+    }
 }
 
+/* Files */
+vector<string> Response::getFiles() {
+    vector<string> res;
+    for (const pair<string, string>& pr : params) {
+        if (startsWith(pr.first, kFilePrefix)) {
+            res.push_back(string("files/") + pr.first.substr(kFilePrefix.size()));
+        }
+    }
+    return res;
+}
+
+void Response::saveFiles() {
+    for (const pair<string, string>& pr : params) {
+        if (startsWith(pr.first, kFilePrefix)) {
+            ofstream fout((string("files/") + pr.first.substr(kFilePrefix.size())).c_str());
+            fout.write(pr.second.c_str(), pr.second.size());
+            fout.close();
+        }
+    }
+}
+
+void Response::deleteFiles() {
+    for (const pair<string, string>& pr : params) {
+        if (startsWith(pr.first, kFilePrefix)) {
+            remove((string("files/") + pr.first.substr(kFilePrefix.size())).c_str());
+        }
+    }
+}
+
+/* I/O */
 ostream& operator<<(ostream &os, Request &o) {
     os << "Action " << o.getAction() << "\n";
     for (const pair<string, string>& pr : o.getParams()) {
@@ -134,6 +215,27 @@ ostream& operator<<(ostream &os, Response &o) {
         os << pr.first << " " << pr.second << "\n";
     }
     return os;
+}
+
+/* Helper */
+Action getAction(string name) {
+    name = toLower(name);
+    if (name == "shutdown") {
+        return ACTION_SHUTDOWN;
+    } else if (name.find("app") != string::npos) {
+        return ACTION_APP;
+    } else if (name.find("services") != string::npos) {
+        return ACTION_SERVICES;
+    } else if (name.find("file") != string::npos) {
+        return ACTION_FILE;
+    } else if (name.find("screenshot") != string::npos) {
+        return ACTION_SCREENSHOT;
+    } else if (name.find("webcam") != string::npos) {
+        return ACTION_WEBCAM;
+    } else if (name.find("keylog") != string::npos) {
+        return ACTION_KEYLOG;
+    }
+    return ACTION_INVALID;
 }
 
 Request parseRequestFromMail(const string &subject, const string &body) {

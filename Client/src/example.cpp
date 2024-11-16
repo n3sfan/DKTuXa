@@ -16,7 +16,7 @@ int test() {
     SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
     SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass,
 			CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
-    SMTPClient.SendMIME("<quangminhcantho43@gmail.com>", "<ltthinh23@clc.fitus.edu.vn>", {"Subject: example sending a MIME-formatted message"}, "Test sending\r\nTest", {});
+    SMTPClient.SendMIME("<ltthinh23@clc.fitus.edu.vn>", {"Subject: example sending a MIME-formatted message"}, "Test sending\r\nTest", {});
     SMTPClient.CleanupSession();
 
     // IMAP, nhan mail

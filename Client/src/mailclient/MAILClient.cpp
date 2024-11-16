@@ -277,8 +277,8 @@ const bool CMailClient::Perform()
 
    if (m_bProgressCallbackSet)
    {
-      curl_easy_setopt(m_pCurlSession, CURLOPT_PROGRESSFUNCTION, *GetProgressFnCallback());
-      curl_easy_setopt(m_pCurlSession, CURLOPT_PROGRESSDATA, &m_ProgressStruct);
+      curl_easy_setopt(m_pCurlSession, CURLOPT_XFERINFOFUNCTION, *GetProgressFnCallback());
+      curl_easy_setopt(m_pCurlSession, CURLOPT_XFERINFODATA, &m_ProgressStruct);
       curl_easy_setopt(m_pCurlSession, CURLOPT_NOPROGRESS, 0L);
    }
 
