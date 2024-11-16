@@ -32,6 +32,8 @@ Action getAction(string name) {
         return ACTION_RESTART;
     }
     return ACTION_INVALID;
+}
+
 Request::~Request() {
 }
 
