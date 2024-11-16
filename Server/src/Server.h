@@ -13,6 +13,14 @@ class Server {
         bool closeApp(Request& request, Response& response);
         bool runApp(Request& request, Response& response);
         bool handleApp(Request& request, Response& response);
+
+        // Thang
+        bool handleGetFile(Request& request, Response& response);
+        bool handleDeleteFile(Request& request, Response& response);
+        bool listRunningService(Request& request, Response& response);
+        bool handleStartService(Request& request, Response& response);
+        bool handleStopService(Request& request, Response& response);
+
         
         // Thinh
         bool keylog(Request& request, Response &response);
