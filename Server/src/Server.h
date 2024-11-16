@@ -9,6 +9,7 @@
 #include <filesystem>
 
 using namespace cv;
+using namespace std;
 
 class Server {
     public:
@@ -25,6 +26,7 @@ class Server {
         bool keylog(Request& request, Response &response);
 
         //Duc
+        bool isRecording;
         bool screenshot(Request& request, Response &response);
         bool getVideoByWebcam(Request& request, Response &response);
         
