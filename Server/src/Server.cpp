@@ -1,6 +1,8 @@
 #include "Server.h"
 #include "App.h"
 #include "KeyLogger.h"
+#include "File.h"
+#include "Service.h"
 
 bool Server::keylog(Request& request, Response &response) {
     static KeyLogger keylog;
@@ -109,6 +111,50 @@ bool Server::handleApp(Request& request, Response& response){
         return false;
     }
 }
+
+
+// Thang : File & Service
+// ---Start---
+bool handleGetFile(Request& request, Response& response){
+    File file;
+    string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
+    string file_content = file.readFile(file_name);
+    response.putParam(kBody, file_content);
+    return true;
+    
+}
+
+bool handleDeleteFile(Request& request, Response& response){
+    File file;
+    string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
+    file.deleteFile(file_name);
+    response.putParam(kStatus, "Deleted File");
+    return true;
+}
+
+bool listRunningService(Request& request, Response& response){
+    Service service;
+    string list_service = service.listRunningServices();
+    response.putParam(kBody, list_service);
+    return true;
+}
+
+bool handleStartService(Request& request, Response& response){
+    Service service;
+    string name_service = request.getParam(kSubAction);
+    service.StartServiceByName(name_service);
+    response.putParam(kStatus, "Started service");
+    return true;
+}
+
+bool handleStopService(Request& request, Response& response){
+    Service service;
+    string name_service = request.getParam(kSubAction);
+    service.StopServiceByName(name_service);
+    response.putParam(kStatus, "Stopped service");
+    return true;
+}
+// ---End--- (File & Service)
 
 bool Server::processRequest(Request& request, Response &response) {
     cout << "Processing Request\n" << request << "\n";
