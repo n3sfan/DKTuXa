@@ -295,11 +295,7 @@ bool Server::screenshot(Request& request, Response &response){
     if (subaction == "Screenshot") {
         std::cout << "Started screenshot!\n";
 
-        if (!std::filesystem::exists("build/files")) {
-            std::filesystem::create_directories("build/files");
-        }
-
-        bool success = ScreenCapture(0, 0, 1920, 1080, "build/files/screencapture.bmp");
+        bool success = ScreenCapture(0, 0, 1920, 1080, "../build/files/screencapture.bmp");
         if (success) {
             std::cout << "Screenshot taken successfully" << std::endl;
         } else {
@@ -307,84 +303,89 @@ bool Server::screenshot(Request& request, Response &response){
             response.putParam(kStatus, "Error: Failed to capture screenshot");
         }
     }
+    response.putParam(kFilePrefix + "screenshot.bmp", "");
     return true;
 }
 
 
+std::atomic<bool> isRecording(false);
+cv::VideoCapture cap;
+cv::VideoWriter writer;
+
+bool StartWebcamRecording(const std::string& filename, bool &flag) {
+    // Open default webcam (device 0)
+    VideoCapture capture(0);
+    if (!capture.isOpened())
+    {
+        cerr << "Error: Unable to open the webcam." << endl;
+        return 0;
+    }
+
+    // Get frame size
+    Size frameSize((int)capture.get(CAP_PROP_FRAME_WIDTH), (int)capture.get(CAP_PROP_FRAME_HEIGHT));
+
+    // Print frame size for debugging
+    cout << "Frame size: " << frameSize.width << "x" << frameSize.height << endl;
+
+    // Create a window
+    namedWindow("Webcam", WINDOW_AUTOSIZE);
+
+    // Initialize video writer to save the video
+    VideoWriter writer(filename.c_str(), VideoWriter::fourcc('m', 'p', '4', 'v'), 30, frameSize);
+
+    if (!writer.isOpened())
+    {
+        cerr << "Error: Unable to open video writer." << endl;
+        return 0;
+    }
+
+    Mat frame;
+    while (true)
+    {
+        capture >> frame; // Capture a new frame
+        if (frame.empty())
+        {
+            cerr << "Error: Blank frame captured." << endl;
+            break;
+        }
+
+        // Write frame to video file
+        writer.write(frame);
+
+        // Show the captured frame
+        imshow("Webcam", frame);
+
+        // Break if 'Esc' key is pressed
+        char c = (char)waitKey(33);
+        if (c == 27)
+            break;
+    }
+
+    // Release resources
+    capture.release();
+    writer.release();
+    destroyAllWindows();
+    return true;
+}
+
 bool Server::getVideoByWebcam(Request& request, Response &response) {
     std::string subaction = request.getParam(kSubAction);
     response.putParam(kStatus, "Ok");
-    isRecording = false;
+
     if (subaction == "Start") {
-        std::cout << "Started recording webcam!\n";
-        capture.open(0);
-        if (!capture.isOpened()) {
-            std::cerr << "Error: Unable to open the webcam." << std::endl;
-            response.putParam(kStatus, "Error: Unable to open webcam");
-            return false;
+        const string filename = "../build/files/videowebcam.mp4";
+        bool result = StartWebcamRecording(filename);
+        if (!result) {
+            response.putParam(kStatus, "Error: Failed to start recording.");
         }
-        
-        Size frameSize((int)capture.get(CAP_PROP_FRAME_WIDTH), (int)capture.get(CAP_PROP_FRAME_HEIGHT));
-        std::cout << "Frame size: " << frameSize.width << "x" << frameSize.height << std::endl;
-
-        // Initialize video writer to save the video
-        writer.open("build/files/videowebcam.mp4", VideoWriter::fourcc('m', 'p', '4', 'v'), 30, frameSize);
-        if (!writer.isOpened()) {
-            std::cerr << "Error: Unable to open video writer." << std::endl;
-            capture.release();  // Release webcam if writer fails
-            response.putParam(kStatus, "Error: Unable to open video writer");
-            return false;
-        }
-
-        isRecording = true;
-
-        // Start a new thread for video capturing and display
-        std::thread([this]() {
-            Mat frame;
-            namedWindow("Webcam", WINDOW_AUTOSIZE);
-
-            while (isRecording) {
-                capture >> frame; 
-                if (frame.empty()) {
-                    std::cerr << "Error: Blank frame captured." << std::endl;
-                    break;
-                }
-                writer.write(frame);
-                imshow("Webcam", frame);
-
-                // Check for the 'Esc' key to stop recording
-                if (waitKey(33) == 27) {
-                    isRecording = false;  // Allow stopping via 'Esc'
-                    break;
-                }
-            }
-
-            // Clean up resources after recording stops
-            capture.release();
-            writer.release();
-            destroyAllWindows();
-            std::cout << "Webcam and writer resources released.\n";
-        }).detach();
-    } 
-    else if (subaction == "Stop") {
-        std::cout << "Stopping webcam recording...\n";
-        if (isRecording) {
-            isRecording = false;  // Stop the recording loop
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-            // Release resources
-            capture.release();
-            writer.release();
-            std::cout << "Webcam and writer resources released.\n";
-        } else {
-            std::cout << "Webcam is not currently recording.\n";
-        }
-    } else {
-        std::cerr << "Error: Invalid subaction." << std::endl;
-        response.putParam(kStatus, "Error: Invalid subaction");
-        return false;
     }
-
+    else if (subaction == "Stop") {
+        bool result = StopWebcamRecording();  // Dừng quay
+        if (!result) {
+            response.putParam(kStatus, "Error: Failed to stop recording.");
+        }
+    }
+    response.putParam(kFilePrefix + "video.mp4", "");
     return true;
 }
 
