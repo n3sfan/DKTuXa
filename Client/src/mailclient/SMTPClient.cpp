@@ -14,8 +14,8 @@ CSMTPClient::CSMTPClient(LogFnCallback oLogger) :
 }
 
 
-const bool CSMTPClient::SendMIME(const std::string &strFrom, const std::string &strTo, const std::vector<std::string> &headers, const std::string &strMail, const std::vector<std::string> &paths) {
-   m_strFrom = strFrom;
+const bool CSMTPClient::SendMIME(const std::string &strTo, const std::vector<std::string> &headers, const std::string &strMail, const std::vector<std::string> &paths) {
+   m_strFrom = "<" + m_strUserName + ">";
    m_strTo = strTo;
    m_headersText = headers;
    m_strMail = strMail;

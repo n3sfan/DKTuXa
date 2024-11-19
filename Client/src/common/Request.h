@@ -14,6 +14,7 @@ const string kSubAction = "Subaction";
 
 const string kStatus = "Status";
 const string kBody = "Body";
+const string kFilePrefix = "_File";
 
 enum Action {
     ACTION_INVALID,
@@ -28,23 +29,36 @@ enum Action {
 };
 
 class Request {
-    private:
+    protected:
         Action action = ACTION_INVALID;
         map<string, string> params;
     public:
+        virtual ~Request();
         map<string, string>& getParams();
+        void setParams(const map<string, string> &params);
         void putParam(string key, string value);
         string getParam(string key);
-        string serialize() const;
-        void deserialize(const string &buf);
         void setAction(Action action);
         Action getAction() const;
 
+        /* Socket */
+        string serialize() const;
+        void deserialize(const string &buf);
+        
+        void toMailString(string &subject, string &body) const;
+        /**
+         * MIME Format
+         */
+        void parseFromMail(const string &mailHeaders, const string &mailBody, string &mailFrom, string &mailSubject);
+       
         friend ostream& operator<<(ostream &os, Request &o);
 };
 
 class Response : public Request {
     public:
+        vector<string> getFiles();
+        void saveFiles();
+        void deleteFiles();
         friend ostream& operator<<(ostream &os, Response &o);
     // private:
     //     Action action;
@@ -59,6 +73,8 @@ class Response : public Request {
 extern queue<Response*> responsesQueue;
 
 Action getAction(string name);
+
+string toString(Action);
 
 Request parseRequestFromMail(const string &subject, const string &body);
 

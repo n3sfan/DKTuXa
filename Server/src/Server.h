@@ -6,9 +6,12 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <windows.h>
 #include <stdio.h>
+#include <thread>
+#include <atomic>
 #include <filesystem>
 
 using namespace cv;
+using namespace std;
 
 class Server {
     public:

