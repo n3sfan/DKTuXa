@@ -83,7 +83,7 @@ bool Server::listInstalledApps(Request& request, Response& response){
 
 bool Server::runApp(Request& request, Response &response){
     App app;
-    std::vector<AppInfo> appList = app.getInstalledApps();
+    std::vector<AppInfo> appList = app.getIns2talledApps();
 
     int appIndex = std::stoi(request.getParam("AppIndex"));
     if (appIndex <= 0 || appIndex > appList.size()){
@@ -115,7 +115,7 @@ bool Server::handleApp(Request& request, Response& response){
 
 // Thang : File & Service
 // ---Start---
-bool handleGetFile(Request& request, Response& response){
+bool Server::handleGetFile(Request& request, Response& response){
     File file;
     string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
     string file_content = file.readFile(file_name);
@@ -124,36 +124,52 @@ bool handleGetFile(Request& request, Response& response){
     
 }
 
-bool handleDeleteFile(Request& request, Response& response){
+bool Server::handleDeleteFile(Request& request, Response& response){
     File file;
     string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
     file.deleteFile(file_name);
-    response.putParam(kStatus, "Deleted File");
+    response.putParam(kBody, "Deleted File");
     return true;
 }
 
-bool listRunningService(Request& request, Response& response){
+bool Server::listRunningService(Request& request, Response& response){
     Service service;
     string list_service = service.listRunningServices();
     response.putParam(kBody, list_service);
     return true;
 }
 
-bool handleStartService(Request& request, Response& response){
+bool Server::startService(Request& request, Response& response){
     Service service;
-    string name_service = request.getParam(kSubAction);
-    service.StartServiceByName(name_service);
-    response.putParam(kStatus, "Started service");
+    string name_service = request.getParam("Name");
+    bool success = service.StartServiceByName(name_service);
+    response.putParam(kBody, success ? "Service is running" : "Failed to run");
     return true;
 }
 
-bool handleStopService(Request& request, Response& response){
+bool Server::stopService(Request& request, Response& response){
     Service service;
-    string name_service = request.getParam(kSubAction);
-    service.StopServiceByName(name_service);
-    response.putParam(kStatus, "Stopped service");
+    string name_service = request.getParam("Name");
+    bool success = service.StartServiceByName(name_service);
+    response.putParam(kBody, success ? "Stopped" : "Failed to stop");
     return true;
 }
+
+bool Server::handleService(Request& request, Response& response){
+    string subAction = request.getParam(kSubAction);
+    if (subAction == "listservice")
+        return listRunningService(request, response);
+    else if (subAction == "startservice")
+        return startService(request, response);
+    else if (subAction == "stopservice")
+        return stopService(request, response);
+    else{
+        response.putParam(kStatus, "Invalid subaction");
+        return false;
+    }
+    return true;
+}
+
 // ---End--- (File & Service)
 
 bool Server::processRequest(Request& request, Response &response) {
