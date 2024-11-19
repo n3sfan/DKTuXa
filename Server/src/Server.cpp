@@ -233,7 +233,7 @@ bool Server::getVideoByWebcam(Request& request, Response &response) {
             response.putParam(kStatus, "Error: Failed to stop recording.");
         }
     }
-    response.putParam(kFilePrefix + "video.mp4", "");
+    response.putParam(kFilePrefix + "videowebcam.mp4", "");
     return true;
 }
 
