@@ -2,13 +2,6 @@
 #define SERVER_H_
 
 #include "common/Request.h"
-#include <opencv2/opencv.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <windows.h>
-#include <stdio.h>
-#include <thread>
-#include <atomic>
-#include <filesystem>
 
 using namespace cv;
 using namespace std;
