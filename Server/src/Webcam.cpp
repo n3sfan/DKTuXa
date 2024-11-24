@@ -1,5 +1,11 @@
 #include "Webcam.h"
 
+// Biến trạng thái toàn cục để kiểm soát việc quay
+std::atomic<bool> isRecording(false);
+std::thread recordingThread;  // Luồng quay video
+cv::VideoCapture capture;
+cv::VideoWriter writer;
+
 bool Webcam::StartWebcamRecording(const std::string& filename) {
     if (isRecording) {
         std::cerr << "Error: Recording is already in progress." << std::endl;

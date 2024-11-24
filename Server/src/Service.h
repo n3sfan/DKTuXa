@@ -1,3 +1,6 @@
+#ifndef SERVICE_H_
+#define SERVICE_H_
+
 #include <iostream>
 #include <vector>
 #include <iomanip>
@@ -13,3 +16,5 @@ class Service{
         bool StartServiceByName(const std::string& serviceName);
         bool StopServiceByName(const std::string& serviceName);
 };
+
+#endif // SERVICE_H_

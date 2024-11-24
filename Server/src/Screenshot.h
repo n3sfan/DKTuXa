@@ -1,3 +1,6 @@
+#ifndef SCREENSHOT_H_
+#define SCREENSHOT_H_
+
 #include <windows.h>
 #include <iostream>
 #include <filesystem>
@@ -8,15 +11,7 @@ class Screenshot
     private:
         
     public:
-        Screenshot();
-        ~Screenshot();
         void screenshot();
 };
 
-Screenshot::Screenshot()
-{
-}
-
-Screenshot::~Screenshot()
-{
-}
+#endif // SCREENSHOT_H_

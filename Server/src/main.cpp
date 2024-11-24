@@ -144,7 +144,8 @@ int server() {
             uploader.uploadFile(ClientSocket, filename);
             cout << "DEBUG: Uploaded file " << filename << "\n";
         }
-        
+
+        cout << "Finished downloading\n"; 
         uploader.joinThread(); 
     }
 

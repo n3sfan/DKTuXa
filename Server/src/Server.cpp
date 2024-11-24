@@ -89,7 +89,7 @@ bool Server::listInstalledApps(Request& request, Response& response){
 
 bool Server::runApp(Request& request, Response &response){
     App app;
-    std::vector<AppInfo> appList = app.getIns2talledApps();
+    std::vector<AppInfo> appList = app.getInstalledApps();
 
     int appIndex = std::stoi(request.getParam("AppIndex"));
     if (appIndex <= 0 || appIndex > appList.size()){
@@ -218,13 +218,13 @@ bool Server::getVideoByWebcam(Request& request, Response &response) {
 
     if (subaction == "Start") {
         const string filename = "../build/files/videowebcam.mp4";
-        bool result = StartWebcamRecording(filename);
+        bool result = webcam.StartWebcamRecording(filename);
         if (!result) {
             response.putParam(kStatus, "Error: Failed to start recording.");
         }
     }
     else if (subaction == "Stop") {
-        bool result = StopWebcamRecording();  // Dừng quay
+        bool result = webcam.StopWebcamRecording();  // Dừng quay
         if (!result) {
             response.putParam(kStatus, "Error: Failed to stop recording.");
         }

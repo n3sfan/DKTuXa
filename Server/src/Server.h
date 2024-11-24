@@ -3,9 +3,6 @@
 
 #include "common/Request.h"
 
-using namespace cv;
-using namespace std;
-
 class Server {
     public:
         // Huy
