@@ -1,8 +1,8 @@
 #include "File.h"
 
-string File::readFile(const string& filePath){
-    // Chuyển đổi từ string sang wstring
-    wstring wideFilePath(filePath.begin(), filePath.end());
+std::string File::readFile(const std::string& filePath){
+    // Chuyển đổi từ std::string sang std::wstring
+    std::wstring wideFilePath(filePath.begin(), filePath.end());
 
     // Mở tệp để đọc
     HANDLE hFile = CreateFileW(
@@ -16,7 +16,7 @@ string File::readFile(const string& filePath){
     );
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        cerr << "Cannot open file: " << filePath << endl;
+        std::cerr << "Cannot open file: " << filePath << std::endl;
         return "";  // Trả về chuỗi rỗng nếu không mở được tệp
     }
 
@@ -24,7 +24,7 @@ string File::readFile(const string& filePath){
     const DWORD bufferSize = 1024;
     char buffer[bufferSize];
     DWORD bytesRead;
-    string fileContent;
+    std::string fileContent;
 
     while (ReadFile(hFile, buffer, bufferSize - 1, &bytesRead, NULL) && bytesRead > 0) {
         buffer[bytesRead] = '\0';  // Đảm bảo buffer có ký tự kết thúc chuỗi
@@ -32,7 +32,7 @@ string File::readFile(const string& filePath){
     }
 
     if (fileContent.empty()) {
-        cerr << "Cannot read data from file or file is empty." << endl;
+        std::cerr << "Cannot read data from file or file is empty." << std::endl;
     }
 
     // Đóng tệp
@@ -42,14 +42,14 @@ string File::readFile(const string& filePath){
     return fileContent;
 }
 
-void File::deleteFile(const string& filePath){
-    // Chuyển đổi từ string sang wstring
-    wstring wideFilePath(filePath.begin(), filePath.end());
+void File::deleteFile(const std::string& filePath){
+    // Chuyển đổi từ std::string sang std::wstring
+    std::wstring wideFilePath(filePath.begin(), filePath.end());
 
     // Gọi hàm DeleteFileW để xóa tệp
     if (DeleteFileW(wideFilePath.c_str())) {
-        wcout << L"Success delete file: " << wideFilePath << endl;
+        std::wcout << L"Success delete file: " << wideFilePath << std::endl;
     } else {
-        wcerr << L"Cannot delete file: " << wideFilePath << L"\nError: " << GetLastError() << endl;
+        std::wcerr << L"Cannot delete file: " << wideFilePath << L"\nError: " << GetLastError() << std::endl;
     }
 }

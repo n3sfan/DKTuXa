@@ -1,19 +1,20 @@
-#pragma once
+#ifndef APP_H_
+#define APP_H_
+
 #include <iostream>
-#include <WinSock2.h>
-#include <Windows.h>
 #include <string>
-#include <string.h>
+#include <cstring>
 #include <vector>
+
+#include <winsock2.h>
+#include <Windows.h>
 #include <shlobj.h>
 
-#pragma comment(lib, "ws2_32.lib")
-
-struct AppInfo{
+struct AppInfo {
     std::string name;
     std::string fullpath;
 };
-struct WindowSearchContext{
+struct WindowSearchContext {
     std::string title;
     bool found;
 };
@@ -32,3 +33,5 @@ class App{
     private:        
         void scanDirectory(const std::string directory, std::vector<AppInfo>& appList); // done
 };
+
+#endif // APP_H_

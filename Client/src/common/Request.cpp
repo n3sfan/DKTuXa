@@ -14,23 +14,21 @@ queue<Response*> responsesQueue;
 
 Action getAction(string name) {
     name = toLower(name);
-    if (name == "shutdown") {
+    if (startsWith(name, "shutdown")) {
         return ACTION_SHUTDOWN;
-    } else if (name.find("app") != string::npos) {
+    } else if (startsWith(name, "app")) {
         return ACTION_APP;
-    } else if (name.find("services") != string::npos) {
+    } else if (startsWith(name, "services")) {
         return ACTION_SERVICES;
-    } else if (name.find("file") != string::npos) {
+    } else if (startsWith(name, "file")) {
         return ACTION_FILE;
-    } else if (name.find("screenshot") != string::npos) {
+    } else if (startsWith(name, "screenshot")) {
         return ACTION_SCREENSHOT;
-    } else if (name.find("webcam") != string::npos) {
+    } else if (startsWith(name, "webcam")) {
         return ACTION_WEBCAM;
-    } else if (name.find("keylog") != string::npos) {
+    } else if (startsWith(name, "keylog")) {
         return ACTION_KEYLOG;
-    } else if (name == "restart"){
-        return ACTION_RESTART;
-    }
+    } 
     return ACTION_INVALID;
 }
 
@@ -62,70 +60,48 @@ Action Request::getAction() const {
 }
 
 /* Socket */
-string Request::serialize() const {
-    int len = 4 + sizeof(Action); // total len + action number
+void Request::serialize(PacketBuffer &buffer) const {
+    int len = 4 + 4; // total len + action number
     for (const pair<string, string>& pr : params) {
         len += 8;
         len += pr.first.size();
         len += pr.second.size();
     }
-    string res;
-    res.resize(len);
-    memcpy(res.data(), &len, 4);
+    buffer.setPacketSize(len);
+    buffer.writeInt(len);
     int cur = 4;
-    memcpy(res.data() + cur, (char*)&action, sizeof(Action));
+    buffer.writeInt(action);
     cur += 4;
 
     // cout << "DEBUG send: " << len << "\n";
     
     for (const pair<string, string>& pr : params) {
         int l = pr.first.size();
-        memcpy(res.data() + cur, &l, 4);
-        cur += 4; 
-        strncpy(res.data() + cur, pr.first.c_str(), l);
-        cur += l;
-        
-        l = pr.second.size();
-        memcpy(res.data() + cur, &l, 4);
-        cur += 4;
-        strncpy(res.data() + cur, pr.second.c_str(), l);
+        buffer.writeString(pr.first.c_str());
+        buffer.writeString(pr.second.c_str());
         cur += l;
     }
 
-    return res;
+    buffer.flush();
 }
 
-void Request::deserialize(const string &s) {
-    const char *buf = s.c_str();
-    int len;
+void Request::deserialize(PacketBuffer &buffer) {
+    int requestSize;
     int cur = 0;
-    memcpy((char*)&len, buf + cur, 4);
+    requestSize = buffer.readInt();
+    buffer.setPacketSize(requestSize);
     cur += 4;
-    memcpy((char*)&action, buf + cur, sizeof(Action));
+    action = (Action)buffer.readInt();
     cur += 4;
 
-    cout << "DEBUG deserialize: " << len << "\n";
-    if (len != s.size()) {
-        cout << "Debug: Fatal: Request/Response is corrupted!\n";
-    }
+    cout << "DEBUG deserialize: " << requestSize << "\n";
 
     string key;
     string value;
-    while (cur < s.size()) {
+    while (buffer.getPacketPos() < buffer.getPacketSize()) {
         key.clear(); value.clear();
-   
-        memcpy((char*)&len, buf + cur, 4);
-        cur += 4; 
-        key.resize(len);
-        memcpy(key.data(), buf + cur, len);
-        cur += len;
-
-        memcpy((char*)&len, buf + cur, 4);
-        cur += 4;
-        value.resize(len);
-        memcpy(value.data(), buf + cur, len); 
-        cur += len;
-
+        key = buffer.readString();
+        value = buffer.readString();
         params[key] = value;
     }
 }
@@ -154,6 +130,7 @@ void Request::parseFromMail(const string &mailHeaders, const string &mailBody, s
     pos2 = mailHeaders.find("\r\n", pos + 9 + 1);
     mailSubject = mailHeaders.substr(pos + 9, pos2 - pos - 1); 
     action = ::getAction(mailSubject);
+    cout << mailSubject << " mailSubject\n" << action << " action\n";
 
     // MIME Format
     vector<string> lines = split(mailBody, "\r\n");
@@ -218,26 +195,6 @@ ostream& operator<<(ostream &os, Response &o) {
 }
 
 /* Helper */
-Action getAction(string name) {
-    name = toLower(name);
-    if (name == "shutdown") {
-        return ACTION_SHUTDOWN;
-    } else if (name.find("app") != string::npos) {
-        return ACTION_APP;
-    } else if (name.find("services") != string::npos) {
-        return ACTION_SERVICES;
-    } else if (name.find("file") != string::npos) {
-        return ACTION_FILE;
-    } else if (name.find("screenshot") != string::npos) {
-        return ACTION_SCREENSHOT;
-    } else if (name.find("webcam") != string::npos) {
-        return ACTION_WEBCAM;
-    } else if (name.find("keylog") != string::npos) {
-        return ACTION_KEYLOG;
-    }
-    return ACTION_INVALID;
-}
-
 Request parseRequestFromMail(const string &subject, const string &body) {
     Action action = getAction(subject);
     vector<string> lines = split(body, " ");

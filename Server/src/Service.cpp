@@ -1,10 +1,10 @@
 #include "Service.h"
 
-string Service::listRunningServices(){
-    stringstream result;
+std::string Service::listRunningServices(){
+    std::stringstream result;
     SC_HANDLE scmHandle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ENUMERATE_SERVICE);
     if (!scmHandle) {
-        cerr << "Cannot open Service Control Manager. Error: " << GetLastError() << endl;
+        std::cerr << "Cannot open Service Control Manager. Error: " << GetLastError() << std::endl;
         return result.str();
     }
 
@@ -26,7 +26,7 @@ string Service::listRunningServices(){
         nullptr
     );
 
-    vector<BYTE> buffer(bytesNeeded);
+    std::vector<BYTE> buffer(bytesNeeded);
     LPENUM_SERVICE_STATUS_PROCESS services = reinterpret_cast<LPENUM_SERVICE_STATUS_PROCESS>(buffer.data());
 
     // Lần thứ hai gọi hàm với buffer đã được cấp phát
@@ -44,37 +44,37 @@ string Service::listRunningServices(){
         
 
         result << "List running service:\n";
-        result << left << setw(40) << "Service Name" << setw(40) << "Display Name" << endl;
-        result << "-------------------------------------------------------------" << endl;
+        result << std::left << std::setw(40) << "Service Name" << std::setw(40) << "Display Name" << std::endl;
+        result << "-------------------------------------------------------------" << std::endl;
         for (DWORD i = 0; i < serviceCount; ++i) {
             ENUM_SERVICE_STATUS_PROCESS& service = services[i];
             if (service.ServiceStatusProcess.dwCurrentState == SERVICE_RUNNING) {
-                result << left << setw(40) << service.lpServiceName << setw(40) << service.lpDisplayName << endl;
+                result << std::left << std::setw(40) << service.lpServiceName << std::setw(40) << service.lpDisplayName << std::endl;
             }
         }
     } else {
-        result << "Cannot list service. Error: " << GetLastError() << endl;
+        result << "Cannot list service. Error: " << GetLastError() << std::endl;
     }
 
     CloseServiceHandle(scmHandle);
     return result.str();
 }
 
-bool Service::StartServiceByName(const string& serviceName){
-    // Chuyển đổi từ string sang wstring
-    wstring wideServiceName(serviceName.begin(), serviceName.end());
+bool Service::StartServiceByName(const std::string& serviceName){
+    // Chuyển đổi từ std::string sang std::wstring
+    std::wstring wideServiceName(serviceName.begin(), serviceName.end());
 
     // Mở trình quản lý dịch vụ
     SC_HANDLE scManager = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
     if (!scManager) {
-        wcerr << L"Cannot open Service Control Manager. Error: " << GetLastError() << endl;
+        std::wcerr << L"Cannot open Service Control Manager. Error: " << GetLastError() << std::endl;
         return false;
     }
 
     // Mở dịch vụ
     SC_HANDLE service = OpenServiceW(scManager, wideServiceName.c_str(), SERVICE_START);
     if (!service) {
-        wcerr << L"Cannot open service. Error: " << GetLastError() << endl;
+        std::wcerr << L"Cannot open service. Error: " << GetLastError() << std::endl;
         CloseServiceHandle(scManager);
         return false;
     }
@@ -83,12 +83,12 @@ bool Service::StartServiceByName(const string& serviceName){
     if (!StartService(service, 0, nullptr)) {
         DWORD error = GetLastError();
         if (error == ERROR_SERVICE_ALREADY_RUNNING) {
-            wcout << L"Service is already running." << endl;
+            std::wcout << L"Service is already running." << std::endl;
         } else {
-            wcerr << L"Cannot start service. Error: " << error << endl;
+            std::wcout << L"Cannot start service. Error: " << error << std::endl;
         }
     } else {
-        wcout << L"Service started successfully." << endl;
+        std::wcout << L"Service started successfully." << std::endl;
     }
 
     CloseServiceHandle(service);
@@ -97,21 +97,21 @@ bool Service::StartServiceByName(const string& serviceName){
 
 }
 
-bool Service::StopServiceByName(const string& serviceName){
-    // Chuyển đổi từ string sang wstring
-    wstring wideServiceName(serviceName.begin(), serviceName.end());
+bool Service::StopServiceByName(const std::string& serviceName){
+    // Chuyển đổi từ std::string sang std::wstring
+    std::wstring wideServiceName(serviceName.begin(), serviceName.end());
 
     // Mở trình quản lý dịch vụ
     SC_HANDLE scManager = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
     if (!scManager) {
-        wcerr << L"Cannot open Service Control Manager. Error: " << GetLastError() << endl;
+        std::wcout << L"Cannot open Service Control Manager. Error: " << GetLastError() << std::endl;
         return false;
     }
 
     // Mở dịch vụ
     SC_HANDLE service = OpenServiceW(scManager, wideServiceName.c_str(), SERVICE_STOP | SERVICE_QUERY_STATUS);
     if (!service) {
-        wcerr << L"Cannot open service. Error: " << GetLastError() << endl;
+        std::wcout << L"Cannot open service. Error: " << GetLastError() << std::endl;
         CloseServiceHandle(scManager);
         return false;
     }
@@ -119,9 +119,9 @@ bool Service::StopServiceByName(const string& serviceName){
     // Dừng dịch vụ
     SERVICE_STATUS status;
     if (!ControlService(service, SERVICE_CONTROL_STOP, &status)) {
-        wcerr << L"Cannot stop service. Error: " << GetLastError() << endl;
+        std::wcout << L"Cannot stop service. Error: " << GetLastError() << std::endl;
     } else {
-        wcout << L"Service stopped successfully." << endl;
+        std::wcout << L"Service stopped successfully." << std::endl;
     }
 
     CloseServiceHandle(service);

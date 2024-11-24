@@ -1,3 +1,5 @@
+#define WIN32_LEAN_AND_MEAN
+
 #include <iostream>
 #include <string>
 #include <thread>
@@ -12,15 +14,18 @@
 #include "SMTPClient.h"
 #include "common/Request.h"
 #include "common/Utils.h"
+#include "common/FileUpDownloader.h"
 
 using namespace std;
 
-#define DEFAULT_PORT "4444"
+#define DEFAULT_PORT "5555"
 
 const string kAppPass = "sigc xldk cuzd bjhr";
 
+/**
+ * Protocol 2.
+ */
 int send(Request &request, Response &response) {
-    WSADATA wsaData;
     SOCKET ConnectSocket = INVALID_SOCKET;
     struct addrinfo *result = NULL,
                     *ptr = NULL,
@@ -30,13 +35,6 @@ int send(Request &request, Response &response) {
     const int recvbuflen = 8192;
     int iResult;
     
-    // Initialize Winsock
-    iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
-    if (iResult != 0) {
-        printf("WSAStartup failed with error: %d\n", iResult);
-        return 1;
-    }
-
     ZeroMemory( &hints, sizeof(hints) );
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -53,7 +51,6 @@ int send(Request &request, Response &response) {
 
     // Attempt to connect to an address until one succeeds
     for(ptr=result; ptr != NULL ;ptr=ptr->ai_next) {
-
         // Create a SOCKET for connecting to server
         ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, 
             ptr->ai_protocol);
@@ -64,7 +61,7 @@ int send(Request &request, Response &response) {
         }
 
         // Connect to server.
-        iResult = connect( ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
+        iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
         if (iResult == SOCKET_ERROR) {
             closesocket(ConnectSocket);
             ConnectSocket = INVALID_SOCKET;
@@ -81,22 +78,12 @@ int send(Request &request, Response &response) {
         return 1;
     }
 
-    // Construct request TODO TEST
     // Send an initial buffer
-    string sendbuf = request.serialize();
-    int total = sendbuf.size();
-    int len = 0;
-    while ((iResult = send(ConnectSocket, sendbuf.c_str() + len, total - len, 0)) > 0) {
-        if (iResult < 0) { 
-            cout << "Send error: " <<  WSAGetLastError() << "\n";
-            // NOTIFY
-            break;
-        }
+    // std::cout << "Socket addr: " << ConnectSocket << "\n";
+    PacketBuffer buffer(ConnectSocket, false);
+    request.serialize(buffer);
 
-        len += iResult;
-    }
-
-    printf("Bytes Sent: %ld / %d\n", len, total);
+    // printf("Bytes Sent: %ld / %d\n", len, total);
 
     // shutdown the connection since no more data will be sent
     iResult = shutdown(ConnectSocket, SD_SEND);
@@ -107,30 +94,27 @@ int send(Request &request, Response &response) {
         return 1;
     }
 
-    // Receive until the peer closes the connection
-    string buf = "";
-    do {
-        iResult = recv(ConnectSocket, recvbuf.get(), recvbuflen, 0);
-        // std::cout << iResult << " result\n";
-
-        if (iResult > 0) { 
-            // printf("Bytes received: %d\n", iResult);
-            buf += string(recvbuf.get(), iResult);
-        } else if ( iResult == 0 )
-            printf("Connection closed\n");
-        else
-            printf("recv failed with error: %d\n", WSAGetLastError());
-
-    } while(iResult > 0);
-
-    cout << "Debug: Received " << buf.size() << " bytes\n";
-
+    buffer = PacketBuffer(ConnectSocket, true);
     response.getParams().clear();
-    response.deserialize(buf);
+    response.deserialize(buffer);
 
-    // cleanup
     closesocket(ConnectSocket);
-    WSACleanup();
+    
+    // Download Manager - New sockets
+    Downloader downloader;
+
+    for (const std::pair<std::string, std::string> &pr : response.getParams()) {
+        if (!startsWith(pr.first, kFilePrefix))
+            continue;
+
+        std::string file = pr.first.substr(kFilePrefix.size());
+        cout << "DEBUG: Downloading file " << file << "\n";
+        downloader.downloadFile(host, DEFAULT_PORT, file);
+        cout << "DEBUG: Downloaded file " << file << "\n";
+    }
+
+    downloader.joinThread();
+
     return 0;
 }
 
@@ -189,11 +173,11 @@ void listenToInbox() {
             // Send mail response
             string mailStr; 
             response.toMailString(mailSubject, mailStr);
-            response.saveFiles();
+            // response.saveFiles();
 
             SMTPClient.SendMIME(mailFrom, {"Subject: " + mailSubject}, mailStr, response.getFiles());
             
-            response.deleteFiles();
+            // response.deleteFiles();'
 
             cout << "---------\nResponse: " << response << "\n-------------\n";
             // Add to queue
@@ -209,8 +193,20 @@ void listenToInbox() {
     SMTPClient.CleanupSession();
 }
 
-int main() {
+int main() { 
+    WSADATA wsaData;
+    int iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
+    if (iResult != 0) {
+        printf("WSAStartup failed with error: %d\n", iResult);
+        return 1;
+    }
+
+    // Create folder "files"
+    CreateDirectoryA("files", NULL);
+
     listenToInbox();
+ 
+    WSACleanup();
 
     return 0;
 }

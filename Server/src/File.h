@@ -1,10 +1,8 @@
-#include <windows.h>
 #include <iostream>
-
-using namespace std;
+#include <windows.h>
 
 class File{
     public:
-        string readFile(const string& filePath);
-        void deleteFile(const string& filePath);
+        std::string readFile(const std::string& filePath);
+        void deleteFile(const std::string& filePath);
 };
