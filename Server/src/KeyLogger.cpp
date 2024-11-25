@@ -8,6 +8,8 @@
 
 #include <windows.h>
 
+// TODO START STATE
+
 KeyLogger::KeyLogger(): 
 // buf(new char[kBufSize]), 
 stop(true) {

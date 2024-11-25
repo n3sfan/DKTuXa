@@ -6,8 +6,6 @@
 #include <fstream>
 #include <thread>
 
-// using namespace std;
-
 const int kBufSize = 8192;
 
 class KeyLogger {

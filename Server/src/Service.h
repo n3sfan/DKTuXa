@@ -1,4 +1,6 @@
-#include <windows.h>
+#ifndef SERVICE_H_
+#define SERVICE_H_
+
 #include <iostream>
 #include <vector>
 #include <iomanip>
@@ -6,11 +8,13 @@
 #include <chrono>
 #include <sstream>
 
-using namespace std;
+#include <windows.h>
 
 class Service{
     public:
-        string listRunningServices();
-        bool StartServiceByName(const string& serviceName);
-        bool StopServiceByName(const string& serviceName);
+        std::string listRunningServices();
+        bool StartServiceByName(const std::string& serviceName);
+        bool StopServiceByName(const std::string& serviceName);
 };
+
+#endif // SERVICE_H_

@@ -1,4 +1,3 @@
-#include <windows.h>
 #include <iostream>
 #include <openssl/md5.h>
 #include <iomanip>

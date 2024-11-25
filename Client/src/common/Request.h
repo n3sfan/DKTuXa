@@ -5,7 +5,7 @@
 #include <map>
 #include <queue>
 
-#include "Request.h"
+#include "PacketBuffer.h"
 
 using namespace std;
 
@@ -19,7 +19,6 @@ const string kFilePrefix = "_File";
 enum Action {
     ACTION_INVALID,
     ACTION_SHUTDOWN,
-    ACTION_RESTART,
     ACTION_APP,
     ACTION_SERVICES,
     ACTION_FILE,
@@ -42,8 +41,14 @@ class Request {
         Action getAction() const;
 
         /* Socket */
-        string serialize() const;
-        void deserialize(const string &buf);
+        /**
+         * Biến request thành dãy byte để chuẩn bị gửi.
+         */
+        void serialize(PacketBuffer &buf) const;
+        /**
+         * Chuyển dãy byte nhận được thành request.
+         */
+        void deserialize(PacketBuffer &buf);
         
         void toMailString(string &subject, string &body) const;
         /**
