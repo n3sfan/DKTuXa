@@ -31,6 +31,9 @@ class Server {
         bool startService(Request& request, Response& response);
         bool stopService(Request& request, Response& response);
         bool handleService(Request& request, Response& response);
+        
+        bool validateChecksum(Request& request, Response& response);
+        bool processReq(Request& request, Response& response);
 
         
         // Thinh

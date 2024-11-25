@@ -124,9 +124,39 @@ bool Server::handleGetFile(Request& request, Response& response){
     File file;
     string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
     string file_content = file.readFile(file_name);
-    response.putParam(kBody, file_content);
+
+    // Tính checksum của file
+    try {
+        std::string fileChecksum = calculateMD5(fileName);
+        response.putParam(kBody, fileContent);
+        response.putParam("Checksum", fileChecksum);
+    } catch (const std::exception& e) {
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, e.what());
+        return false;
+    }
     return true;
     
+}
+
+bool Server::validateChecksum(Request& request, Response& response) {
+    std::string receivedChecksum = request.getParam("Checksum");
+    std::string fileName = request.getParam(kFilePrefix + "tmt.txt");
+
+    try {
+        std::string calculatedChecksum = calculateMD5(fileName);
+        if (calculatedChecksum == receivedChecksum) {
+            response.putParam(kStatus, "Ok");
+        } else {
+            response.putParam(kStatus, "Error");
+            response.putParam(kBody, "Checksum mismatch.");
+        }
+    } catch (const std::exception& e) {
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, e.what());
+        return false;
+    }
+    return true;
 }
 
 bool Server::handleDeleteFile(Request& request, Response& response){
@@ -172,6 +202,33 @@ bool Server::handleService(Request& request, Response& response){
         response.putParam(kStatus, "Invalid subaction");
         return false;
     }
+    return true;
+}
+
+bool Server::processReq(Request& request, Response& response) {
+    std::string requestId = request.getParam("RequestId"); // Mỗi request cần ID duy nhất
+    std::string resume = request.getParam("Resume"); // Kiểm tra client yêu cầu tiếp tục
+    
+    if (!resume.empty()) {
+        // Tiếp tục từ trạng thái tạm
+        std::string tempData = loadTempResponse(requestId);
+        if (!tempData.empty()) {
+            response.setParams({{"Body", tempData}});
+            response.putParam(kStatus, "Resumed");
+            clearTempResponse(requestId); // Xóa sau khi gửi lại
+            return true;
+        }
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, "No previous response found.");
+        return false;
+    }
+
+    // Thực hiện xử lý bình thường
+    std::string responseData = "This is the response data."; // Dữ liệu ví dụ
+    saveTempResponse(requestId, responseData); // Lưu trước khi gửi
+    response.setParams({{"Body", responseData}});
+    response.putParam(kStatus, "Ok");
+
     return true;
 }
 
@@ -416,3 +473,4 @@ bool Server::getVideoByWebcam(Request& request, Response &response) {
 bool Server::processRequest(Request& request, Response &response){
 
 }
+
