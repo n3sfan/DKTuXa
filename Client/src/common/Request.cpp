@@ -18,7 +18,7 @@ Action getAction(string name) {
         return ACTION_SHUTDOWN;
     } else if (startsWith(name, "app")) {
         return ACTION_APP;
-    } else if (startsWith(name, "services")) {
+    } else if (startsWith(name, "service")) {
         return ACTION_SERVICES;
     } else if (startsWith(name, "file")) {
         return ACTION_FILE;
@@ -33,6 +33,7 @@ Action getAction(string name) {
 }
 
 Request::~Request() {
+    
 }
 
 map<string, string>& Request::getParams() {
