@@ -43,13 +43,19 @@ std::string Service::listRunningServices(){
             nullptr)) {
         
 
-        result << "List running service:\n";
-        result << std::left << std::setw(40) << "Service Name" << std::setw(40) << "Display Name" << std::endl;
-        result << "-------------------------------------------------------------" << std::endl;
+       // In tiêu đề cột
+        constexpr int colWidth = 40; // Độ rộng mỗi cột
+        result << "List of Running Services:\n";
+        result << std::left << std::setw(colWidth) << "Service Name" 
+               << std::setw(colWidth) << "Display Name" << std::endl;
+        result << std::string(2 * colWidth, '-') << std::endl;
+
+        // In thông tin từng dịch vụ đang chạy
         for (DWORD i = 0; i < serviceCount; ++i) {
             ENUM_SERVICE_STATUS_PROCESS& service = services[i];
             if (service.ServiceStatusProcess.dwCurrentState == SERVICE_RUNNING) {
-                result << std::left << std::setw(40) << service.lpServiceName << std::setw(40) << service.lpDisplayName << std::endl;
+                result << std::left << std::setw(colWidth) << service.lpServiceName 
+                       << std::setw(colWidth) << service.lpDisplayName << std::endl;
             }
         }
     } else {

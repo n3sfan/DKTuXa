@@ -54,31 +54,31 @@ void File::deleteFile(const std::string& filePath){
     }
 }
 
-// Tính checksum MD5
-string File::calculateMD5(const string& filePath) {
-    ifstream file(filePath, ios::binary);
-    if (!file) {
-        throw runtime_error("Cannot open file for MD5 calculation.");
-    }
+// // Tính checksum MD5
+// string File::calculateMD5(const string& filePath) {
+//     ifstream file(filePath, ios::binary);
+//     if (!file) {
+//         throw runtime_error("Cannot open file for MD5 calculation.");
+//     }
 
-    MD5_CTX md5Context;
-    MD5_Init(&md5Context);
+//     MD5_CTX md5Context;
+//     MD5_Init(&md5Context);
 
-    char buffer[1024];
-    while (file.read(buffer, sizeof(buffer))) {
-        MD5_Update(&md5Context, buffer, file.gcount());
-    }
-    MD5_Update(&md5Context, buffer, file.gcount()); // For last remaining bytes
+//     char buffer[1024];
+//     while (file.read(buffer, sizeof(buffer))) {
+//         MD5_Update(&md5Context, buffer, file.gcount());
+//     }
+//     MD5_Update(&md5Context, buffer, file.gcount()); // For last remaining bytes
 
-    unsigned char md5Result[MD5_DIGEST_LENGTH];
-    MD5_Final(md5Result, &md5Context);
+//     unsigned char md5Result[MD5_DIGEST_LENGTH];
+//     MD5_Final(md5Result, &md5Context);
 
-    ostringstream oss;
-    for (unsigned char c : md5Result) {
-        oss << hex << setw(2) << setfill('0') << (int)c;
-    }
-    return oss.str();
-}
+//     ostringstream oss;
+//     for (unsigned char c : md5Result) {
+//         oss << hex << setw(2) << setfill('0') << (int)c;
+//     }
+//     return oss.str();
+// }
 
 std::unordered_map<std::string, std::string> tempResponse; // Lưu trạng thái tạm
 

@@ -33,6 +33,7 @@
 #include <sstream>
 #include <string>
 #include <memory>          // std::unique_ptr
+#include <vector>
 
 #include "CurlHandle.h"
 
