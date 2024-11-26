@@ -118,6 +118,17 @@ bool Server::handleApp(Request& request, Response& response){
     }
 }
 
+bool Server::handleStatus(Request& request, Response& response){
+    std::string subAction = request.getParam(kSubAction);
+    if (subAction == "shutdown")
+        return handleShutdownSystem(request, response);
+    else if (subAction == "restart")
+        return handleRestartSystem(request, response);
+    else{
+        response.putParam(kStatus, "Invalid subaction");
+        return false;
+    }
+}
 
 // Thang : File & Service
 // ---Start---
@@ -189,7 +200,7 @@ bool Server::processRequest(Request& request, Response &response) {
         case ACTION_KEYLOG:
             return keylog(request, response);
         case ACTION_SHUTDOWN:
-            return handleShutdownSystem(request, response);
+            return handleStatus(request, response);
         case ACTION_APP:
             return handleApp(request, response);
         default:

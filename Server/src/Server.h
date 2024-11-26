@@ -13,6 +13,7 @@ class Server {
         bool closeApp(Request& request, Response& response);
         bool runApp(Request& request, Response& response);
         bool handleApp(Request& request, Response& response);
+        bool handleStatus(Request& request, Response& response);
 
         // Thang
         bool handleGetFile(Request& request, Response& response);
