@@ -60,6 +60,8 @@ protected:
    std::vector<std::string> m_filePaths;
    curl_mime            *m_mime = NULL;
    curl_slist           *m_headers = NULL, *m_rcpts = NULL;
+
+   bool use_html;
 };
 
 #endif
