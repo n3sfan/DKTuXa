@@ -6,6 +6,7 @@
 #include <queue>
 
 #include "PacketBuffer.h"
+#include "SHA256.h"
 
 using namespace std;
 
@@ -15,6 +16,9 @@ const string kSubAction = "Subaction";
 const string kStatus = "Status";
 const string kBody = "Body";
 const string kFilePrefix = "_File";
+
+const string kPassWord = "Password"; // Trường Password
+const string kPcName = "Pc Name"; // Trường nhận tên PC Name
 
 enum Action {
     ACTION_INVALID,
