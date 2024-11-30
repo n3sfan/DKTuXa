@@ -14,6 +14,17 @@ CSMTPClient::CSMTPClient(LogFnCallback oLogger) :
 }
 
 
+const bool CSMTPClient::SendMIME(const std::string &strTo, const std::vector<std::string> &headers, const std::string &strMail, const std::vector<std::string> &paths, bool html) {
+   m_strFrom = "<" + m_strUserName + ">";
+   m_strTo = strTo;
+   m_headersText = headers;
+   m_strMail = strMail;
+   m_filePaths = paths;
+   m_eOperationType = SMTP_SEND_MIME;
+   use_html = html;
+   return Perform();
+}
+
 const bool CSMTPClient::SendMIME(const std::string &strTo, const std::vector<std::string> &headers, const std::string &strMail, const std::vector<std::string> &paths) {
    m_strFrom = "<" + m_strUserName + ">";
    m_strTo = strTo;
@@ -21,6 +32,7 @@ const bool CSMTPClient::SendMIME(const std::string &strTo, const std::vector<std
    m_strMail = strMail;
    m_filePaths = paths;
    m_eOperationType = SMTP_SEND_MIME;
+   use_html = false;
    return Perform();
 }
 
@@ -127,7 +139,11 @@ const bool CSMTPClient::PrePerform()
          // Append text part
          part = curl_mime_addpart(m_mime);
          curl_mime_data(part, m_strMail.c_str(), CURL_ZERO_TERMINATED);
-         curl_mime_type( part, "text/html" );
+         if (use_html) {
+            curl_mime_type(part, "text/html; charset=UTF-8");
+         } else {
+            curl_mime_type(part, "text/plain; charset=UTF-8");
+         }
          curl_mime_encoder(part, "quoted-printable");
          // Append files parts 
          for (std::string &path : m_filePaths) {

@@ -5,6 +5,7 @@
 #include <thread>
 #include <cstring>
 #include <memory>
+#include <regex>
 
 #include <winsock2.h>
 #include <windows.h>
@@ -118,6 +119,12 @@ int send(Request &request, Response &response) {
     return 0;
 }
 
+bool isHtmlContent(const std::string& content) {
+    // Biểu thức chính quy để kiểm tra thẻ HTML
+    std::regex html_tags(R"(<[a-z][\s\S]*?>)");
+    return std::regex_search(content, html_tags);
+}
+
 void listenToInbox() {
     string str;
 
@@ -175,7 +182,9 @@ void listenToInbox() {
             response.toMailString(mailSubject, mailStr);
             // response.saveFiles();
 
-            SMTPClient.SendMIME(mailFrom, {"Subject: " + mailSubject}, mailStr, response.getFiles());
+            bool use_html = isHtmlContent(mailBody);
+
+            SMTPClient.SendMIME(mailFrom, {"Subject: " + mailSubject}, mailStr, response.getFiles(), use_html);
             
             // response.deleteFiles();'
 

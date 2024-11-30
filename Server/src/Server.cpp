@@ -5,6 +5,7 @@
 #include "Service.h"
 #include "Webcam.h"
 #include "Screenshot.h"
+#include "SHA256/SHA256.h"
 
 bool Server::keylog(Request& request, Response &response) {
     static KeyLogger keylog;
@@ -137,40 +138,9 @@ bool Server::handleGetFile(Request& request, Response& response){
     string file_path = request.getParam("Path");
     string file_list = file.getFiles(file_path);
     response.putParam(kBody, file_list);
-
-    // Tính checksum của file
-    // try {
-    //     std::string fileChecksum = calculateMD5(fileName);
-    //     response.putParam(kBody, fileContent);
-    //     response.putParam("Checksum", fileChecksum);
-    // } catch (const std::exception& e) {
-    //     response.putParam(kStatus, "Error");
-    //     response.putParam(kBody, e.what());
-    //     return false;
-    // }
     return true;
 
 }
-
-// bool Server::validateChecksum(Request& request, Response& response) {
-//     std::string receivedChecksum = request.getParam("Checksum");
-//     std::string fileName = request.getParam(kFilePrefix + "tmt.txt");
-
-//     try {
-//         std::string calculatedChecksum = calculateMD5(fileName);
-//         if (calculatedChecksum == receivedChecksum) {
-//             response.putParam(kStatus, "Ok");
-//         } else {
-//             response.putParam(kStatus, "Error");
-//             response.putParam(kBody, "Checksum mismatch.");
-//         }
-//     } catch (const std::exception& e) {
-//         response.putParam(kStatus, "Error");
-//         response.putParam(kBody, e.what());
-//         return false;
-//     }
-//     return true;
-// }
 
 bool Server::handleDeleteFile(Request& request, Response& response){
     File file;
@@ -232,34 +202,119 @@ bool Server::handleService(Request& request, Response& response){
     return true;
 }
 
-// bool Server::processReq(Request& request, Response& response) {
-//     std::string requestId = request.getParam("RequestId"); // Mỗi request cần ID duy nhất
-//     std::string resume = request.getParam("Resume"); // Kiểm tra client yêu cầu tiếp tục
-    
-//     if (!resume.empty()) {
-//         // Tiếp tục từ trạng thái tạm
-//         std::string tempData = loadTempResponse(requestId);
-//         if (!tempData.empty()) {
-//             response.setParams({{"Body", tempData}});
-//             response.putParam(kStatus, "Resumed");
-//             clearTempResponse(requestId); // Xóa sau khi gửi lại
-//             return true;
-//         }
-//         response.putParam(kStatus, "Error");
-//         response.putParam(kBody, "No previous response found.");
-//         return false;
+
+// ---End--- (File & Service)
+
+// CheckSum and Save Response
+
+// Hàm tính checksum của một file sử dụng SHA256
+// std::string calculateSHA256Checksum(const std::string& filePath) {
+//     std::ifstream file(filePath, std::ios::binary); // Mở file ở chế độ nhị phân
+//     if (!file) {
+//         throw std::runtime_error("Could not open file for checksum calculation.");
 //     }
 
-//     // Thực hiện xử lý bình thường
-//     std::string responseData = "This is the response data."; // Dữ liệu ví dụ
-//     saveTempResponse(requestId, responseData); // Lưu trước khi gửi
-//     response.setParams({{"Body", responseData}});
-//     response.putParam(kStatus, "Ok");
+//     SHA256 sha256; // Tạo một instance của SHA256
+//     std::string buffer;
+//     char chunk[1024]; // Đọc file theo khối 1024 byte để tiết kiệm bộ nhớ
+//     while (file.read(chunk, sizeof(chunk))) {
+//         sha256.update(reinterpret_cast<const uint8_t*>(chunk), file.gcount());
+//     }
+//     sha256.update(reinterpret_cast<const uint8_t*>(chunk), file.gcount()); // Xử lý phần còn lại
+//     file.close();
 
+//     // Trả về checksum dưới dạng chuỗi hex
+//     return SHA256::toString(sha256.digest());
+// }
+
+// // Hàm xử lý checksum cho response
+// bool Server::validateChecksum(Request& request, Response& response) {
+//     try {
+//         // Lấy checksum gửi từ client
+//         std::string receivedChecksum = request.getParam("Checksum");
+//         // Lấy đường dẫn file từ param (cần xử lý trước)
+//         std::string fileName = request.getParam(kFilePrefix + "filename");
+
+//         // Tính checksum của file
+//         std::string calculatedChecksum = calculateSHA256Checksum(fileName);
+
+//         // So sánh checksum nhận và tính được
+//         if (calculatedChecksum == receivedChecksum) {
+//             response.putParam(kStatus, "Ok");
+//         } else {
+//             response.putParam(kStatus, "Error");
+//             response.putParam(kBody, "Checksum mismatch.");
+//         }
+//     } catch (const std::exception& e) {
+//         // Xử lý ngoại lệ nếu xảy ra lỗi
+//         response.putParam(kStatus, "Error");
+//         response.putParam(kBody, e.what());
+//         return false;
+//     }
 //     return true;
 // }
 
-// ---End--- (File & Service)
+// Hàm lưu response tạm trước khi gửi
+void Server::saveTempResponse(const std::string& responseData) {
+    std::ofstream tempFile("temp_response.txt", std::ios::app);  // Mở file ở chế độ append
+    if (!tempFile) {
+        throw std::runtime_error("Could not create temporary response file.");
+    }
+    tempFile << responseData << "\n";  // Lưu dữ liệu response vào file
+    tempFile.close();
+}
+
+// Hàm tải lại phản hồi tạm từ file
+std::string Server::loadTempResponse() {
+    std::ifstream tempFile("temp_response.txt");
+    if (!tempFile) {
+        return ""; // Nếu không tìm thấy file tạm, trả về chuỗi rỗng
+    }
+    std::ostringstream buffer;
+    buffer << tempFile.rdbuf();  // Đọc toàn bộ nội dung file
+    tempFile.close();
+    return buffer.str();
+}
+
+// Hàm xóa toàn bộ nội dung file tạm
+void Server::clearTempResponse() {
+    std::ofstream tempFile("temp_response.txt", std::ios::trunc);  // Mở file với chế độ 'trunc' để xóa hết dữ liệu
+    if (!tempFile) {
+        throw std::runtime_error("Could not open temporary response file for clearing.");
+    }
+    tempFile.close();  // File sẽ bị xóa nội dung khi đóng lại
+}
+
+// Hàm xử lý tiếp tục gửi phản hồi nếu server bị tắt đột ngột
+bool Server::processRequestWithResumption(Request& request, Response& response) {
+    std::string resume = request.getParam("Resume");  // Kiểm tra yêu cầu tiếp tục từ client
+
+    if (!resume.empty()) {
+        // Nếu client yêu cầu tiếp tục, tải lại và gửi lại phản hồi
+        std::string tempData = loadTempResponse();
+        if (!tempData.empty()) {
+            response.setParams({{"Body", tempData}});
+            response.putParam(kStatus, "Resumed");
+
+            // Sau khi gửi dữ liệu, xóa nội dung file tạm
+            clearTempResponse();
+            return true;
+        }
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, "No previous response found.");
+        return false;
+    }
+
+    // Xử lý bình thường
+    std::string responseData = "This is the response data.";  // Ví dụ phản hồi
+    saveTempResponse(responseData);  // Lưu phản hồi tạm vào file
+    response.setParams({{"Body", responseData}});
+    response.putParam(kStatus, "Ok");
+
+    return true;
+}
+
+// ---------------------
 
 bool Server::processRequest(Request& request, Response &response) {
     cout << "Processing Request\n" << request << "\n";
