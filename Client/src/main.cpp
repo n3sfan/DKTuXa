@@ -16,6 +16,7 @@
 #include "common/Request.h"
 #include "common/Utils.h"
 #include "common/FileUpDownloader.h"
+#include "common/SHA256.h"
 
 using namespace std;
 
@@ -165,11 +166,15 @@ void listenToInbox() {
             Request request;
             request.parseFromMail(mailHeaders, mailBody, mailFrom, mailSubject);
 
+            if (!isPassWordValid(request.getParam(kPassWord))){
+                // TODO NOTIFY
+                cout << "Invalid password.\n";
+                continue;
+            }
             if (request.getAction() == ACTION_INVALID) {
                 // TODO NOTIFY
                 continue;
             }
-
             cout << "Processing request, action " << request.getAction() << "\n";
             Response response;
             if (send(request, response) != 0) {
