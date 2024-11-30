@@ -21,12 +21,16 @@ std::string File::getFiles(const std::string& directoryPath) {
             continue;
         }
 
-        // Chuyển đổi tên file từ wchar_t* sang std::string
+        // Chuyển đổi tên từ wchar_t* sang std::string
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-        std::string fileName = converter.to_bytes(findFileData.cFileName);
+        std::string itemName = converter.to_bytes(findFileData.cFileName);
 
-        // Thêm tên file vào danh sách
-        fileList += fileName + "\n";
+        // Kiểm tra xem mục này có phải là thư mục hay không
+        if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            fileList += itemName + " [Dir]\n"; // Nếu là thư mục, thêm chú thích "[Dir]"
+        } else {
+            fileList += itemName + "\n"; // Nếu là tệp, chỉ thêm tên
+        }
 
     } while (FindNextFileW(hFind, &findFileData) != 0);
 

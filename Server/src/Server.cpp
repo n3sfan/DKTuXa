@@ -5,7 +5,6 @@
 #include "Service.h"
 #include "Webcam.h"
 #include "Screenshot.h"
-#include "SHA256/SHA256.h"
 
 bool Server::keylog(Request& request, Response &response) {
     static KeyLogger keylog;
@@ -208,51 +207,51 @@ bool Server::handleService(Request& request, Response& response){
 // CheckSum and Save Response
 
 // Hàm tính checksum của một file sử dụng SHA256
-// std::string calculateSHA256Checksum(const std::string& filePath) {
-//     std::ifstream file(filePath, std::ios::binary); // Mở file ở chế độ nhị phân
-//     if (!file) {
-//         throw std::runtime_error("Could not open file for checksum calculation.");
-//     }
+std::string calculateSHA256Checksum(const std::string& filePath) {
+    std::ifstream file(filePath, std::ios::binary); // Mở file ở chế độ nhị phân
+    if (!file) {
+        throw std::runtime_error("Could not open file for checksum calculation.");
+    }
 
-//     SHA256 sha256; // Tạo một instance của SHA256
-//     std::string buffer;
-//     char chunk[1024]; // Đọc file theo khối 1024 byte để tiết kiệm bộ nhớ
-//     while (file.read(chunk, sizeof(chunk))) {
-//         sha256.update(reinterpret_cast<const uint8_t*>(chunk), file.gcount());
-//     }
-//     sha256.update(reinterpret_cast<const uint8_t*>(chunk), file.gcount()); // Xử lý phần còn lại
-//     file.close();
+    SHA256 sha256; // Tạo một instance của SHA256
+    std::string buffer;
+    char chunk[1024]; // Đọc file theo khối 1024 byte để tiết kiệm bộ nhớ
+    while (file.read(chunk, sizeof(chunk))) {
+        sha256.update(reinterpret_cast<const uint8_t*>(chunk), file.gcount());
+    }
+    sha256.update(reinterpret_cast<const uint8_t*>(chunk), file.gcount()); // Xử lý phần còn lại
+    file.close();
 
-//     // Trả về checksum dưới dạng chuỗi hex
-//     return SHA256::toString(sha256.digest());
-// }
+    // Trả về checksum dưới dạng chuỗi hex
+    return SHA256::toString(sha256.digest());
+}
 
-// // Hàm xử lý checksum cho response
-// bool Server::validateChecksum(Request& request, Response& response) {
-//     try {
-//         // Lấy checksum gửi từ client
-//         std::string receivedChecksum = request.getParam("Checksum");
-//         // Lấy đường dẫn file từ param (cần xử lý trước)
-//         std::string fileName = request.getParam(kFilePrefix + "filename");
+// Hàm xử lý checksum cho response
+bool Server::validateChecksum(Request& request, Response& response) {
+    try {
+        // Lấy checksum gửi từ client
+        std::string receivedChecksum = request.getParam("Checksum");
+        // Lấy đường dẫn file từ param (cần xử lý trước)
+        std::string fileName = request.getParam(kFilePrefix + "filename");
 
-//         // Tính checksum của file
-//         std::string calculatedChecksum = calculateSHA256Checksum(fileName);
+        // Tính checksum của file
+        std::string calculatedChecksum = calculateSHA256Checksum(fileName);
 
-//         // So sánh checksum nhận và tính được
-//         if (calculatedChecksum == receivedChecksum) {
-//             response.putParam(kStatus, "Ok");
-//         } else {
-//             response.putParam(kStatus, "Error");
-//             response.putParam(kBody, "Checksum mismatch.");
-//         }
-//     } catch (const std::exception& e) {
-//         // Xử lý ngoại lệ nếu xảy ra lỗi
-//         response.putParam(kStatus, "Error");
-//         response.putParam(kBody, e.what());
-//         return false;
-//     }
-//     return true;
-// }
+        // So sánh checksum nhận và tính được
+        if (calculatedChecksum == receivedChecksum) {
+            response.putParam(kStatus, "Ok");
+        } else {
+            response.putParam(kStatus, "Error");
+            response.putParam(kBody, "Checksum mismatch.");
+        }
+    } catch (const std::exception& e) {
+        // Xử lý ngoại lệ nếu xảy ra lỗi
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, e.what());
+        return false;
+    }
+    return true;
+}
 
 // Hàm lưu response tạm trước khi gửi
 void Server::saveTempResponse(const std::string& responseData) {

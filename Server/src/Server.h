@@ -2,6 +2,7 @@
 #define SERVER_H_
 
 #include "common/Request.h"
+#include "common/SHA256.h"
 
 class Server {
     public:
