@@ -119,6 +119,7 @@ const bool CSMTPClient::PrePerform()
          for (std::string &s : m_headersText) {
             m_headers = curl_slist_append(m_headers, s.c_str());
          }
+         // m_headers = curl_slist_append(m_headers, NULL);
          curl_easy_setopt(m_pCurlSession, CURLOPT_HTTPHEADER, m_headers);
 
          // Build MIME message
@@ -127,8 +128,10 @@ const bool CSMTPClient::PrePerform()
          // Append text part
          part = curl_mime_addpart(m_mime);
          curl_mime_data(part, m_strMail.c_str(), CURL_ZERO_TERMINATED);
-         curl_mime_type( part, "text/plain" );
+
+         curl_mime_type(part, "text/plain; charset=UTF-8");
          curl_mime_encoder(part, "quoted-printable");
+   
          // Append files parts 
          for (std::string &path : m_filePaths) {
             part = curl_mime_addpart(m_mime);

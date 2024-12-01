@@ -69,6 +69,8 @@ int server() {
         return 1;
     }
 
+    setSockOptions(ListenSocket);
+
     // Setup the TCP listening socket
     iResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
     if (iResult == SOCKET_ERROR) {
@@ -106,6 +108,8 @@ int server() {
             WSACleanup();
             return 1;
         }
+
+        setSockOptions(ClientSocket);
 
         // Receive request
         PacketBuffer buffer(ClientSocket, true);
@@ -168,7 +172,8 @@ int main() {
 
     stopServer = false;
     thread serverThread(server);
-    serverThread.join();
+    // serverThread.join();
+    
 
     while (true) {
         

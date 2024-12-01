@@ -5,6 +5,13 @@
 #include <string>
 #include <cstddef>
 
+const int kTimeoutMillis = 5000;
+
+void setSockOptions(SOCKET socket) {
+    setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&kTimeoutMillis, sizeof(int));
+    setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&kTimeoutMillis, sizeof(int)); 
+}
+
 bool recvall(SOCKET ConnectSocket, char *buf, int len) {
     int received = 0;
     int iResult;
@@ -83,6 +90,9 @@ SOCKET createSocket(std::string host, std::string port) {
         WSACleanup();
         return INVALID_SOCKET;
     }
+
+    // Set socket options
+    setSockOptions(ConnectSocket);
 
     return ConnectSocket;
 }

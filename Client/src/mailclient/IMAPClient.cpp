@@ -308,7 +308,7 @@ const bool CIMAPClient::PrePerform()
             if (m_requestBody) {
                strRequestURL += ";SECTION=TEXT";
             } else {
-               strRequestURL += ";SECTION=HEADER.FIELDS%20(SUBJECT%20FROM)";
+               strRequestURL += ";SECTION=HEADER.FIELDS%20(SUBJECT%20FROM%20MESSAGE-ID)";
             }
          }
          else

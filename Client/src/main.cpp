@@ -22,10 +22,16 @@ using namespace std;
 
 const string kAppPass = "sigc xldk cuzd bjhr";
 
+map<string, string> pcNamesIPs;
+
 /**
  * Protocol 2.
  */
 int send(Request &request, Response &response) {
+    if (request.getParam(kIPAttr) == "" || request.getParam(kSubAction) == "") {
+        return 1;
+    }
+
     SOCKET ConnectSocket = INVALID_SOCKET;
     struct addrinfo *result = NULL,
                     *ptr = NULL,
@@ -37,15 +43,15 @@ int send(Request &request, Response &response) {
     
     ZeroMemory( &hints, sizeof(hints) );
     hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_socktype = SOCK_STREAM; 
+    hints.ai_protocol = IPPROTO_TCP; 
 
     // Resolve the server address and port
     string host = request.getParam(kIPAttr);
     iResult = getaddrinfo(host.c_str(), DEFAULT_PORT, &hints, &result);
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
-        WSACleanup();
+        // WSACleanup();
         return 1;
     }
 
@@ -56,11 +62,12 @@ int send(Request &request, Response &response) {
             ptr->ai_protocol);
         if (ConnectSocket == INVALID_SOCKET) {
             printf("socket failed with error: %ld\n", WSAGetLastError());
-            WSACleanup();
+            // WSACleanup();
             return 1;
         }
 
         // Connect to server.
+        setSockOptions(ConnectSocket);
         iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
         if (iResult == SOCKET_ERROR) {
             closesocket(ConnectSocket);
@@ -74,7 +81,7 @@ int send(Request &request, Response &response) {
 
     if (ConnectSocket == INVALID_SOCKET) {
         printf("Unable to connect to server!\n");
-        WSACleanup();
+        // WSACleanup();
         return 1;
     }
 
@@ -90,7 +97,7 @@ int send(Request &request, Response &response) {
     if (iResult == SOCKET_ERROR) {
         printf("shutdown failed with error: %d\n", WSAGetLastError());
         closesocket(ConnectSocket);
-        WSACleanup();
+        // WSACleanup();
         return 1;
     }
 
@@ -154,9 +161,9 @@ void listenToInbox() {
             // cout << mailHeaders << " headers5\n";
             // cout << mailBody << " body\n";
 
-            string mailFrom, mailSubject;
+            string mailFrom, mailSubject, mailMessageId;
             Request request;
-            request.parseFromMail(mailHeaders, mailBody, mailFrom, mailSubject);
+            request.parseFromMail(mailHeaders, mailBody, mailFrom, mailSubject, mailMessageId);
 
             if (request.getAction() == ACTION_INVALID) {
                 // TODO NOTIFY
@@ -175,11 +182,14 @@ void listenToInbox() {
             response.toMailString(mailSubject, mailStr);
             // response.saveFiles();
 
-            SMTPClient.SendMIME(mailFrom, {"Subject: " + mailSubject}, mailStr, response.getFiles());
+            cout << mailHeaders << " headers\n";
+            cout << mailMessageId << " mid\n";
+
+            SMTPClient.SendMIME(mailFrom, {"References: " + mailMessageId, "In-Reply-To: " + mailMessageId, "Subject: Re: " + mailSubject}, mailStr, response.getFiles());
             
             // response.deleteFiles();'
 
-            cout << "---------\nResponse: " << response << "\n-------------\n";
+            // cout << "---------\nResponse: " << response << "\n-------------\n";
             // Add to queue
             // responsesQueue.push();
         }   

@@ -120,7 +120,7 @@ void Request::toMailString(string &subject, string &body) const {
     }
 }
 
-void Request::parseFromMail(const string &mailHeaders, const string &mailBody, string &mailFrom, string &mailSubject) {
+void Request::parseFromMail(const string &mailHeaders, const string &mailBody, string &mailFrom, string &mailSubject, string &mailMessageId) {
     bool body = false;
     int pos = mailHeaders.find("From: ");
     int pos2 = mailHeaders.find("<", pos + 6 + 1);
@@ -131,7 +131,11 @@ void Request::parseFromMail(const string &mailHeaders, const string &mailBody, s
     pos2 = mailHeaders.find("\r\n", pos + 9 + 1);
     mailSubject = mailHeaders.substr(pos + 9, pos2 - pos - 1); 
     action = ::getAction(mailSubject);
-    cout << mailSubject << " mailSubject\n" << action << " action\n";
+    // cout << mailSubject << " mailSubject\n" << action << " action\n";
+
+    pos = mailHeaders.find("Message-ID: ");
+    pos2 = mailHeaders.find("\r\n", pos + 12 + 1);
+    mailMessageId = mailHeaders.substr(pos + 12, pos2 - (pos + 12));
 
     // MIME Format
     vector<string> lines = split(mailBody, "\r\n");
@@ -144,7 +148,7 @@ void Request::parseFromMail(const string &mailHeaders, const string &mailBody, s
         } else if (body) {
             vector<string> entry = split(lines[i], ": ");
             if (entry.size() == 2) // in case empty break line
-                putParam(entry[0], entry[1]);
+                putParam(entry[0], entry[1]); 
         }
     }
 }

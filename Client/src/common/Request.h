@@ -54,7 +54,7 @@ class Request {
         /**
          * MIME Format
          */
-        void parseFromMail(const string &mailHeaders, const string &mailBody, string &mailFrom, string &mailSubject);
+        void parseFromMail(const string &mailHeaders, const string &mailBody, string &mailFrom, string &mailSubject, string &messageId);
        
         friend ostream& operator<<(ostream &os, Request &o);
 };
