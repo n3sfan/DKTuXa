@@ -7,6 +7,8 @@
 #include <thread>
 #include <chrono>
 #include <sstream>
+#include <locale>
+#include <codecvt>
 
 #include <windows.h>
 

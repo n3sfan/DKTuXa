@@ -1,6 +1,5 @@
 #include "Webcam.h"
 
-// Biến trạng thái toàn cục để kiểm soát việc quay
 std::atomic<bool> isRecording(false);
 std::thread recordingThread;  // Luồng quay video
 cv::VideoCapture capture;
@@ -13,7 +12,7 @@ bool Webcam::StartWebcamRecording(const std::string& filename) {
     }
 
     // Mở webcam
-    capture.open(0);
+    capture.open(0); // Mở webcam mặc định (0 là camera đầu tiên)
     if (!capture.isOpened()) {
         std::cerr << "Error: Unable to open the webcam." << std::endl;
         return false;
@@ -23,8 +22,15 @@ bool Webcam::StartWebcamRecording(const std::string& filename) {
     cv::Size frameSize((int)capture.get(cv::CAP_PROP_FRAME_WIDTH), (int)capture.get(cv::CAP_PROP_FRAME_HEIGHT));
     std::cout << "Frame size: " << frameSize.width << "x" << frameSize.height << std::endl;
 
+    // Kiểm tra đường dẫn lưu video
+    if (!fs::exists(fs::path(filename).parent_path())) {
+        std::cerr << "Error: The directory does not exist." << std::endl;
+        return false;
+    }
+
     // Khởi tạo VideoWriter để lưu video
-    writer.open(filename, cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 30, frameSize);
+    // Sử dụng codec 'XVID' cho video MP4
+    writer.open(filename, cv::VideoWriter::fourcc('X', 'V', 'I', 'D'), 30, frameSize, true);
     if (!writer.isOpened()) {
         std::cerr << "Error: Unable to open video writer." << std::endl;
         capture.release();
@@ -67,7 +73,7 @@ void Webcam::Record() {
         // Lấy khung hình từ webcam
         capture >> frame;
         if (frame.empty()) {
-            std::cerr << "Error: Blank frame captured." << std::endl;
+            std::cerr << "Error: Blank frame captured. Check your webcam or drivers." << std::endl;
             break;
         }
 
@@ -78,7 +84,7 @@ void Webcam::Record() {
         cv::imshow("Recording", frame);
 
         // Kiểm tra phím để thoát (tùy chọn, nhưng không thoát nếu không nhấn Stop)
-        if (cv::waitKey(10) == 27) {
+        if (cv::waitKey(10) == 27) { // Phím ESC để thoát (nếu bạn muốn dừng việc ghi video)
             std::cerr << "Warning: Esc pressed, but will not stop recording. Use Stop action instead." << std::endl;
         }
     }
@@ -86,3 +92,4 @@ void Webcam::Record() {
     // Đóng cửa sổ hiển thị
     cv::destroyWindow("Recording");
 }
+

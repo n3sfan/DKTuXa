@@ -84,28 +84,26 @@ std::vector<std::string> App::getRunningTaskbarApps(){
 }
 
 bool App::closeApplication(const std::string& executablePath){
-    WindowSearchContext context = {executablePath, false};
+    HWND hwnd = FindWindowA(NULL, executablePath.c_str());
+    if (hwnd != NULL) {
+        // Gửi thông điệp WM_CLOSE để yêu cầu đóng cửa sổ
+        SendMessage(hwnd, WM_CLOSE, 0, 0);
 
-    auto enumWindowsCallback = [](HWND hwnd, LPARAM lParam) -> BOOL {
-        auto* context = reinterpret_cast<WindowSearchContext*>(lParam);
-        wchar_t currentTitle[256];
-        GetWindowTextW(hwnd, currentTitle, 256);
+        // Đợi một chút để đảm bảo ứng dụng có thời gian xử lý thông điệp
+        Sleep(500);
 
-        // Chuyển đổi wchar_t* sang std::string
-        std::string windowTitle = wideCharToString(currentTitle);
-
-        // So sánh tiêu đề cửa sổ với tiêu đề cần tìm
-        if (windowTitle == context->title) {
-            PostMessage(hwnd, WM_CLOSE, 0, 0);
-            context->found = true;
-            return FALSE; // Dừng EnumWindows sau khi tìm thấy
+        // Kiểm tra xem cửa sổ còn tồn tại hay không
+        HWND hwndAfterClose = FindWindowA(NULL, executablePath.c_str());
+        if (hwndAfterClose == NULL) {
+            return true;
+        } else {
+            return false;
         }
-        return TRUE; // Tiếp tục tìm kiếm
-    };
+    } else {
+        std::cerr << "Application window not found: " << executablePath << "\n";
+    }
 
-    // Sử dụng EnumWindows để duyệt qua tất cả cửa sổ hiển thị
-    EnumWindows(enumWindowsCallback, reinterpret_cast<LPARAM>(&context));
-    return context.found;
+    return false;
 }
 
 void App::scanDirectory(const std::string directory, std::vector<AppInfo>& appList){

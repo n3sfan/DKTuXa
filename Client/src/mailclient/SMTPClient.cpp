@@ -128,8 +128,7 @@ const bool CSMTPClient::PrePerform()
          // Append text part
          part = curl_mime_addpart(m_mime);
          curl_mime_data(part, m_strMail.c_str(), CURL_ZERO_TERMINATED);
-
-         curl_mime_type(part, "text/plain; charset=UTF-8");
+         curl_mime_type( part, "text/html; charset=UTF-8" );
          curl_mime_encoder(part, "quoted-printable");
    
          // Append files parts 

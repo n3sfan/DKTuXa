@@ -1,55 +1,95 @@
 #include "File.h"
 
-std::string File::readFile(const std::string& filePath){
-    // Chuyển đổi từ std::string sang std::wstring
-    std::wstring wideFilePath(filePath.begin(), filePath.end());
-
-    // Mở tệp để đọc
-    HANDLE hFile = CreateFileW(
-        wideFilePath.c_str(),         // Đường dẫn tệp
-        GENERIC_READ,                 // Quyền truy cập đọc
-        0,                            // Không chia sẻ
-        NULL,                         // Không có thuộc tính bảo mật
-        OPEN_EXISTING,                // Chỉ mở nếu tệp tồn tại
-        FILE_ATTRIBUTE_NORMAL,        // Thuộc tính tệp bình thường
-        NULL                          // Không có mẫu tệp
-    );
-
-    if (hFile == INVALID_HANDLE_VALUE) {
-        std::cerr << "Cannot open file: " << filePath << std::endl;
-        return "";  // Trả về chuỗi rỗng nếu không mở được tệp
+std::string File::getFiles(const std::string& directoryPath) {
+    std::wstring wideDirectoryPath(directoryPath.begin(), directoryPath.end());
+    if (wideDirectoryPath.back() != L'\\') {
+        wideDirectoryPath += L'\\'; // Đảm bảo đường dẫn kết thúc bằng dấu '\'
     }
 
-    // Đọc dữ liệu từ tệp
-    const DWORD bufferSize = 1024;
-    char buffer[bufferSize];
-    DWORD bytesRead;
-    std::string fileContent;
+    WIN32_FIND_DATAW findFileData;
+    HANDLE hFind = FindFirstFileW((wideDirectoryPath + L"*").c_str(), &findFileData);
 
-    while (ReadFile(hFile, buffer, bufferSize - 1, &bytesRead, NULL) && bytesRead > 0) {
-        buffer[bytesRead] = '\0';  // Đảm bảo buffer có ký tự kết thúc chuỗi
-        fileContent += buffer;    // Thêm nội dung đọc được vào chuỗi kết quả
+    if (hFind == INVALID_HANDLE_VALUE) {
+        std::cerr << "Cannot open directory: " << directoryPath << "\nError: " << GetLastError() << std::endl;
+        return ""; // Trả về chuỗi rỗng nếu không thể mở thư mục
     }
 
-    if (fileContent.empty()) {
-        std::cerr << "Cannot read data from file or file is empty." << std::endl;
+    std::string fileList;
+    do {
+        // Bỏ qua các mục "." và ".."
+        if (wcscmp(findFileData.cFileName, L".") == 0 || wcscmp(findFileData.cFileName, L"..") == 0) {
+            continue;
+        }
+
+        // Chuyển đổi tên từ wchar_t* sang std::string
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+        std::string itemName = converter.to_bytes(findFileData.cFileName);
+
+        // Kiểm tra xem mục này có phải là thư mục hay không
+        if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            fileList += itemName + " [Dir]\n"; // Nếu là thư mục, thêm chú thích "[Dir]"
+        } else {
+            fileList += itemName + "\n"; // Nếu là tệp, chỉ thêm tên
+        }
+
+    } while (FindNextFileW(hFind, &findFileData) != 0);
+
+    DWORD error = GetLastError();
+    if (error != ERROR_NO_MORE_FILES) {
+        std::cerr << "Error occurred during directory iteration. Error: " << error << std::endl;
     }
 
-    // Đóng tệp
-    CloseHandle(hFile);
-
-    // Trả về nội dung tệp
-    return fileContent;
+    FindClose(hFind);
+    return fileList;
 }
 
-void File::deleteFile(const std::string& filePath){
+
+void File::deleteFile(const std::string& filePath) {
     // Chuyển đổi từ std::string sang std::wstring
     std::wstring wideFilePath(filePath.begin(), filePath.end());
 
-    // Gọi hàm DeleteFileW để xóa tệp
+    // Kiểm tra xem tệp có tồn tại không trước khi xóa
+    DWORD fileAttributes = GetFileAttributesW(wideFilePath.c_str());
+    if (fileAttributes == INVALID_FILE_ATTRIBUTES) {
+        std::wcerr << L"Error: File does not exist or cannot access: " << wideFilePath << L"\n";
+        return;
+    }
+
+    // Kiểm tra xem đó có phải là tệp không
+    if (fileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        std::wcerr << L"Error: The path is a directory, not a file: " << wideFilePath << L"\n";
+        return;
+    }
+
+    // Thử xóa tệp
     if (DeleteFileW(wideFilePath.c_str())) {
-        std::wcout << L"Success delete file: " << wideFilePath << std::endl;
+        std::wcout << L"File successfully deleted: " << wideFilePath << std::endl;
     } else {
-        std::wcerr << L"Cannot delete file: " << wideFilePath << L"\nError: " << GetLastError() << std::endl;
+        DWORD error = GetLastError();
+        std::wcerr << L"Cannot delete file: " << wideFilePath << L"\nError code: " << error << std::endl;
+
+        // Hiển thị lỗi cụ thể hơn nếu cần
+        switch (error) {
+            case ERROR_ACCESS_DENIED:
+                std::wcerr << L"Error: Access denied. Check file permissions or if the file is in use.\n";
+                break;
+            case ERROR_FILE_NOT_FOUND:
+                std::wcerr << L"Error: File not found.\n";
+                break;
+            case ERROR_SHARING_VIOLATION:
+                std::wcerr << L"Error: The file is being used by another process.\n";
+                break;
+            default:
+                std::wcerr << L"Error: Unknown error occurred.\n";
+                break;
+        }
     }
 }
+
+
+
+// Client
+// {
+//     "RequestId": "12345",
+//     "Resume": "true"
+// }

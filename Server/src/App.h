@@ -13,10 +13,10 @@ struct AppInfo {
     std::string name;
     std::string fullpath;
 };
-struct WindowSearchContext {
-    std::string title;
-    bool found;
-};
+// struct WindowSearchContext {
+//     std::string title;
+//     bool found;
+// };
 class App{
     public:
         void shutdownSystem(); // done

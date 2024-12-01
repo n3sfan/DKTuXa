@@ -1,18 +1,18 @@
 #include "Service.h"
 
-std::string Service::listRunningServices(){
+std::string Service::listRunningServices() {
     std::stringstream result;
     SC_HANDLE scmHandle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ENUMERATE_SERVICE);
     if (!scmHandle) {
         std::cerr << "Cannot open Service Control Manager. Error: " << GetLastError() << std::endl;
-        return result.str();
+        return "<p>Error: Cannot open Service Control Manager.</p>";
     }
 
     DWORD bytesNeeded = 0;
     DWORD serviceCount = 0;
     DWORD resumeHandle = 0;
 
-    // Lần đầu tiên gọi hàm để lấy số byte cần thiết
+    // Initial call to get buffer size
     EnumServicesStatusEx(
         scmHandle,
         SC_ENUM_PROCESS_INFO,
@@ -29,7 +29,7 @@ std::string Service::listRunningServices(){
     std::vector<BYTE> buffer(bytesNeeded);
     LPENUM_SERVICE_STATUS_PROCESS services = reinterpret_cast<LPENUM_SERVICE_STATUS_PROCESS>(buffer.data());
 
-    // Lần thứ hai gọi hàm với buffer đã được cấp phát
+    // Allocate buffer and retrieve service data
     if (EnumServicesStatusEx(
             scmHandle,
             SC_ENUM_PROCESS_INFO,
@@ -42,23 +42,40 @@ std::string Service::listRunningServices(){
             &resumeHandle,
             nullptr)) {
         
+        // Begin HTML table
+        result << "<style>"
+               << "table { font-family: monospace; border-collapse: collapse; width: 100%; }"
+               << "th, td { border: 1px solid black; padding: 8px; text-align: left; }"
+               << "th { background-color: #f2f2f2; }"
+               << "</style>";
+        result << "<table>";
+        result << "<tr><th>Service Name</th><th>Display Name</th></tr>";
 
-        result << "List running service:\n";
-        result << std::left << std::setw(40) << "Service Name" << std::setw(40) << "Display Name" << std::endl;
-        result << "-------------------------------------------------------------" << std::endl;
+        // Rows of services
         for (DWORD i = 0; i < serviceCount; ++i) {
             ENUM_SERVICE_STATUS_PROCESS& service = services[i];
             if (service.ServiceStatusProcess.dwCurrentState == SERVICE_RUNNING) {
-                result << std::left << std::setw(40) << service.lpServiceName << std::setw(40) << service.lpDisplayName << std::endl;
+#ifdef UNICODE
+                std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+                std::string serviceName = converter.to_bytes(service.lpServiceName);
+                std::string displayName = converter.to_bytes(service.lpDisplayName);
+#else
+                std::string serviceName = service.lpServiceName;
+                std::string displayName = service.lpDisplayName;
+#endif
+                result << "<tr><td>" << serviceName << "</td><td>" << displayName << "</td></tr>";
             }
         }
+        result << "</table>";
     } else {
-        result << "Cannot list service. Error: " << GetLastError() << std::endl;
+        result << "<p>Error: Cannot list services. Error code: " << GetLastError() << "</p>";
     }
 
     CloseServiceHandle(scmHandle);
     return result.str();
 }
+
+
 
 bool Service::StartServiceByName(const std::string& serviceName){
     // Chuyển đổi từ std::string sang std::wstring

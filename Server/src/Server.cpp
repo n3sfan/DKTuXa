@@ -5,6 +5,8 @@
 #include "Service.h"
 #include "Webcam.h"
 #include "Screenshot.h"
+#include "Broadcast.h"
+
 
 bool Server::keylog(Request& request, Response &response) {
     static KeyLogger keylog;
@@ -134,20 +136,65 @@ bool Server::handleStatus(Request& request, Response& response){
 // ---Start---
 bool Server::handleGetFile(Request& request, Response& response){
     File file;
-    std::string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
-    std::string file_content = file.readFile(file_name);
-    response.putParam(kBody, file_content);
+    string file_path = request.getParam("Path");
+    string file_list = file.getFiles(file_path);
+    response.putParam(kBody, file_list);
+
+    // Tính checksum của file
+    // try {
+    //     std::string fileChecksum = calculateMD5(fileName);
+    //     response.putParam(kBody, fileContent);
+    //     response.putParam("Checksum", fileChecksum);
+    // } catch (const std::exception& e) {
+    //     response.putParam(kStatus, "Error");
+    //     response.putParam(kBody, e.what());
+    //     return false;
+    // }
     return true;
-    
+
 }
+
+// bool Server::validateChecksum(Request& request, Response& response) {
+//     std::string receivedChecksum = request.getParam("Checksum");
+//     std::string fileName = request.getParam(kFilePrefix + "tmt.txt");
+
+//     try {
+//         std::string calculatedChecksum = calculateMD5(fileName);
+//         if (calculatedChecksum == receivedChecksum) {
+//             response.putParam(kStatus, "Ok");
+//         } else {
+//             response.putParam(kStatus, "Error");
+//             response.putParam(kBody, "Checksum mismatch.");
+//         }
+//     } catch (const std::exception& e) {
+//         response.putParam(kStatus, "Error");
+//         response.putParam(kBody, e.what());
+//         return false;
+//     }
+//     return true;
+// }
 
 bool Server::handleDeleteFile(Request& request, Response& response){
     File file;
-    std::string file_name = request.getParam(kFilePrefix + "tmt.txt"); // Thêm dùm tui khúc này nha Thịnh
-    file.deleteFile(file_name);
+    std::string file_path = request.getParam("Path");
+    file.deleteFile(file_path);
     response.putParam(kBody, "Deleted File");
     return true;
 }
+
+bool Server::handleFile(Request& request, Response& response){
+    string subAction = request.getParam(kSubAction);
+    if (subAction == "listfile")
+        return handleGetFile(request, response);
+    else if (subAction == "deletefile")
+        return handleDeleteFile(request, response);
+    else{
+        response.putParam(kStatus, "Invalid subaction");
+        return false;
+    }
+    return true;
+}
+
 
 bool Server::listRunningService(Request& request, Response& response){
     Service service;
@@ -160,15 +207,15 @@ bool Server::startService(Request& request, Response& response){
     Service service;
     string name_service = request.getParam("Name");
     bool success = service.StartServiceByName(name_service);
-    response.putParam(kBody, success ? "Service is running" : "Failed to run");
+    response.putParam(kBody, success ? "Start service success" : "Failed to run");
     return true;
 }
 
 bool Server::stopService(Request& request, Response& response){
     Service service;
     string name_service = request.getParam("Name");
-    bool success = service.StartServiceByName(name_service);
-    response.putParam(kBody, success ? "Stopped" : "Failed to stop");
+    bool success = service.StopServiceByName(name_service);
+    response.putParam(kBody, success ? "Stop service success" : "Failed to stop");
     return true;
 }
 
@@ -187,6 +234,33 @@ bool Server::handleService(Request& request, Response& response){
     return true;
 }
 
+// bool Server::processReq(Request& request, Response& response) {
+//     std::string requestId = request.getParam("RequestId"); // Mỗi request cần ID duy nhất
+//     std::string resume = request.getParam("Resume"); // Kiểm tra client yêu cầu tiếp tục
+    
+//     if (!resume.empty()) {
+//         // Tiếp tục từ trạng thái tạm
+//         std::string tempData = loadTempResponse(requestId);
+//         if (!tempData.empty()) {
+//             response.setParams({{"Body", tempData}});
+//             response.putParam(kStatus, "Resumed");
+//             clearTempResponse(requestId); // Xóa sau khi gửi lại
+//             return true;
+//         }
+//         response.putParam(kStatus, "Error");
+//         response.putParam(kBody, "No previous response found.");
+//         return false;
+//     }
+
+//     // Thực hiện xử lý bình thường
+//     std::string responseData = "This is the response data."; // Dữ liệu ví dụ
+//     saveTempResponse(requestId, responseData); // Lưu trước khi gửi
+//     response.setParams({{"Body", responseData}});
+//     response.putParam(kStatus, "Ok");
+
+//     return true;
+// }
+
 // ---End--- (File & Service)
 
 bool Server::processRequest(Request& request, Response &response) {
@@ -203,6 +277,16 @@ bool Server::processRequest(Request& request, Response &response) {
             return handleStatus(request, response);
         case ACTION_APP:
             return handleApp(request, response);
+        case ACTION_SERVICES:
+            return handleService(request, response);
+        case ACTION_FILE:
+            return handleFile(request, response);
+        case ACTION_SCREENSHOT:
+            return screenshot(request, response);
+        case ACTION_WEBCAM:
+            return getVideoByWebcam(request, response);
+        case ACTION_BROADCAST:
+            return PCnameandIP(request, response);
         default:
             return false;
     }
@@ -212,11 +296,13 @@ bool Server::processRequest(Request& request, Response &response) {
 bool Server::screenshot(Request& request, Response &response){
     std::string subaction = request.getParam(kSubAction);
     response.putParam(kStatus, "Ok");
-    Screenshot screenshot;
 
-    if (subaction == "Screenshot") {
+    Screenshot screenshot;
+    const std::string filename = "../build/files/screencapture.bmp";
+
+    if (subaction == "screenshot") {
         std::cout << "Started screenshot!\n";
-        screenshot.screenshot();
+        screenshot.screenshot(filename);
     }
     response.putParam(kFilePrefix + "screencapture.bmp", "");
     return true;
@@ -224,22 +310,63 @@ bool Server::screenshot(Request& request, Response &response){
 
 bool Server::getVideoByWebcam(Request& request, Response &response) {
     Webcam webcam;
-    std::string subaction = request.getParam(kSubAction);
-    response.putParam(kStatus, "Ok");
+    const std::string filename = "../build/files/video.mp4";
+    
+    while (true){
+        std::string subaction = request.getParam(kSubAction);
+        response.putParam(kStatus, "Ok");
 
-    if (subaction == "Start") {
-        const string filename = "../build/files/videowebcam.mp4";
-        bool result = webcam.StartWebcamRecording(filename);
-        if (!result) {
-            response.putParam(kStatus, "Error: Failed to start recording.");
+        if (subaction == "Start") {
+            bool started = webcam.StartWebcamRecording(filename);
+            if (!started) {
+                std::cerr << "Error: Unable to start recording." << std::endl;
+                return -1;
+            }
+        }
+        else if (subaction == "Stop") {
+            bool stopped = webcam.StopWebcamRecording();
+            if (!stopped) {
+                std::cerr << "Error: Unable to stop recording." << std::endl;
+                return -1;
+            }
+            break;
         }
     }
-    else if (subaction == "Stop") {
-        bool result = webcam.StopWebcamRecording();  // Dừng quay
-        if (!result) {
-            response.putParam(kStatus, "Error: Failed to stop recording.");
-        }
-    }
-    response.putParam(kFilePrefix + "videowebcam.mp4", "");
+    response.putParam(kFilePrefix + "video.mp4", ""); 
     return true;
+}
+
+bool Server::PCnameandIP(Request& request, Response& response) {
+    // Broadcast broadcast;
+    // Lấy subAction từ request
+    std::string subAction = request.getParam(kSubAction);
+
+    // Xử lý subAction "listpcname-ip"
+    if (subAction == "listpcname-ip") {
+        std::string ip = getIPAddress();
+        std::string pcname = getPCName();
+
+        // Kiểm tra xem IP và PCName có hợp lệ không
+        // if (ip.empty() || pcname.empty() || ip == "Unknown_IP" || pcname == "Unknown PC") {
+        //     response.putParam(kStatus, "Error");
+        //     response.putParam(kBody, "Unable to retrieve PC information.");
+        //     return false;
+        // }
+
+        // Lấy thông tin PC và trả về trong response
+        std::string PCInfo = getPCInfo();
+        // if (PCInfo.empty()) {
+        //     response.putParam(kStatus, "Error");
+        //     response.putParam(kBody, "Failed to retrieve PC information.");
+        //     return false;
+        // }
+
+        response.putParam(kStatus, "Ok");
+        response.putParam(kBody, PCInfo);
+        return true;
+    }
+    // Xử lý subAction không xác định
+    response.putParam(kStatus, "Error");
+    response.putParam(kBody, "Unknown subAction: " + subAction);
+    return false;
 }

@@ -15,14 +15,13 @@
 #include "common/Request.h"
 #include "common/Utils.h"
 #include "common/FileUpDownloader.h"
+#include "common/SHA256.h"
+#include "common/AccountTable.h"
+#include "UDP.h"
 
 using namespace std;
 
 #define DEFAULT_PORT "5555"
-
-const string kAppPass = "sigc xldk cuzd bjhr";
-
-map<string, string> pcNamesIPs;
 
 /**
  * Protocol 2.
@@ -165,11 +164,15 @@ void listenToInbox() {
             Request request;
             request.parseFromMail(mailHeaders, mailBody, mailFrom, mailSubject, mailMessageId);
 
+            if (!isPassWordValid(request.getParam(kPassWord))){
+                // TODO NOTIFY
+                cout << "Invalid password.\n";
+                continue;
+            }
             if (request.getAction() == ACTION_INVALID) {
                 // TODO NOTIFY
                 continue;
             }
-
             cout << "Processing request, action " << request.getAction() << "\n";
             Response response;
             if (send(request, response) != 0) {
@@ -214,7 +217,7 @@ int main() {
     // Create folder "files"
     CreateDirectoryA("files", NULL);
 
-    listenToInbox();
+    listenToInboxUDP();
  
     WSACleanup();
 
