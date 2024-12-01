@@ -219,7 +219,7 @@ const bool CMailClient::Perform()
    /* Set username and password */
    curl_easy_setopt(m_pCurlSession, CURLOPT_USERNAME, m_strUserName.c_str());
    curl_easy_setopt(m_pCurlSession, CURLOPT_PASSWORD, m_strPassword.c_str());
-
+   
 
    if (m_eSslTlsFlags & ENABLE_TLS)
    {

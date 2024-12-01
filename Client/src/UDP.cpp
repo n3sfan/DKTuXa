@@ -1,32 +1,128 @@
-#define WIN32_LEAN_AND_MEAN
-
-#include <iostream>
-#include <string>
-#include <thread>
-#include <cstring>
-#include <memory>
-
-#include <winsock2.h>
-#include <windows.h>
-#include <ws2tcpip.h>
-
-#include "IMAPClient.h"
-#include "SMTPClient.h"
-#include "common/Request.h"
-#include "common/Utils.h"
-#include "common/FileUpDownloader.h"
-#include "common/SHA256.h"
-#include "common/AccountTable.h"
 #include "UDP.h"
 
 using namespace std;
 
-#define DEFAULT_PORT "5555"
+bool isBroadcast = false;
+std::map<std::string, std::string> pcNameIPMap;
 
 /**
- * Protocol 2.
+ * Protocol 2 - UDP version.
  */
-int send(Request &request, Response &response) {
+
+int sendUDP(Request &request, Response &response) {
+    SOCKET UdpSocket = INVALID_SOCKET;
+    struct sockaddr_in destAddr;
+    unique_ptr<char[]> recvbuf(new char[8192]());
+    const int recvbuflen = 8192;
+    int iResult;
+
+    LAN lan;
+    lan.calculateBroadcastIP();
+
+    // Tính địa chỉ Broadcast IP trong file class LAN (ip, subnet, broadcast IP)
+    std::string broadcastIP = lan.getbroadcastIP();
+    printf("DEBUG: Broadcast IP is %s\n", broadcastIP.c_str());
+
+    // Tạo socket UDP
+    UdpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (UdpSocket == INVALID_SOCKET) {
+        printf("Socket creation failed with error: %d\n", WSAGetLastError());
+        WSACleanup();
+        return 1;
+    }
+
+    // Cho phép socket gửi broadcast
+    BOOL broadcastPermission = TRUE;
+    iResult = setsockopt(UdpSocket, SOL_SOCKET, SO_BROADCAST, (char *)&broadcastPermission, sizeof(broadcastPermission));
+    if (iResult == SOCKET_ERROR) {
+        printf("setsockopt for broadcast failed with error: %d\n", WSAGetLastError());
+        closesocket(UdpSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    // Cấu hình địa chỉ đích
+    ZeroMemory(&destAddr, sizeof(destAddr));
+    destAddr.sin_family = AF_INET;
+    destAddr.sin_port = htons(atoi(DEFAULT_PORT)); // Chuyển đổi port sang dạng network byte order
+    destAddr.sin_addr.s_addr = inet_addr(broadcastIP.c_str());
+
+    // Serialize dữ liệu request vào PacketBuffer
+    PacketBuffer buffer(UdpSocket, false);
+    request.serialize(buffer);
+    printf("DEBUG: Sending %zu bytes to broadcast on port %s...\n", buffer.getBuffer().size(), DEFAULT_PORT);
+
+    // Gửi dữ liệu qua UDP
+    iResult = sendto(UdpSocket, buffer.getBuffer().data(), buffer.getBuffer().size(), 0,
+                     (sockaddr *)&destAddr, sizeof(destAddr));
+    if (iResult == SOCKET_ERROR) {
+        int error_code = WSAGetLastError();
+        printf("sendto failed with error: %d (%s)\n", error_code, strerror(error_code));
+        closesocket(UdpSocket);
+        WSACleanup();
+        return 1;
+    }
+    printf("DEBUG: Data sent via broadcast. Waiting for responses...\n");
+
+    //Nhận phản hồi từ các máy
+    fd_set readfds;
+    timeval timeout;
+    timeout.tv_sec = 5; // Chờ phản hồi trong 5 giây
+    timeout.tv_usec = 0;
+    bool hasResponses = false;
+
+    do {
+        FD_ZERO(&readfds);
+        FD_SET(UdpSocket, &readfds);
+
+        // Chờ dữ liệu
+        int activity = select(0, &readfds, NULL, NULL, &timeout);
+        if (activity == SOCKET_ERROR) {
+            printf("select failed with error: %d\n", WSAGetLastError());
+            break;
+        }
+
+        if (activity == 0) { // Timeout hết thời gian chờ
+            printf("DEBUG: Timeout reached, no more responses.\n");
+            break;
+        }
+
+        if (FD_ISSET(UdpSocket, &readfds)) {
+            sockaddr_in senderAddr;
+            int senderAddrSize = sizeof(senderAddr);
+
+            // Nhận dữ liệu
+            iResult = recvfrom(UdpSocket, recvbuf.get(), recvbuflen, 0,
+                               (sockaddr *)&senderAddr, &senderAddrSize);
+            if (iResult == SOCKET_ERROR) {
+                printf("recvfrom failed with error: %d\n", WSAGetLastError());
+                break;
+            }
+
+            // Xử lý phản hồi
+            printf("DEBUG: Received response from %s\n", inet_ntoa(senderAddr.sin_addr));
+            PacketBuffer responseBuffer(UdpSocket, true);
+            responseBuffer.getBuffer() = std::string(recvbuf.get(), iResult);
+            response.deserialize(responseBuffer);
+
+            string PCInfo = response.getParam(kBody);
+            processAndStore(PCInfo, pcNameIPMap); // Lưu thông tin phản hồi
+            hasResponses = true;
+        }
+    } while (true);
+
+    if (!hasResponses) {
+        printf("DEBUG: No responses received.\n");
+    }
+
+    // Dọn dẹp tài nguyên
+    closesocket(UdpSocket);
+    WSACleanup();
+
+    return 0;
+}
+
+int sendTCP(Request &request, Response &response) {
     SOCKET ConnectSocket = INVALID_SOCKET;
     struct addrinfo *result = NULL,
                     *ptr = NULL,
@@ -119,7 +215,7 @@ int send(Request &request, Response &response) {
     return 0;
 }
 
-void listenToInbox() {
+void listenToInboxUDP() {
     string str;
 
     CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
@@ -170,14 +266,34 @@ void listenToInbox() {
             }
             cout << "Processing request, action " << request.getAction() << "\n";
             Response response;
-            if (send(request, response) != 0) {
-                // TODO ERROR
-                continue;
+
+            //Nếu là broadcast thì gửi bằng UDP
+            if (request.getAction() == ACTION_BROADCAST)
+            {
+                if (sendUDP(request, response) != 0) {
+                    // TODO ERROR
+                    continue;
+                }
+                string valueBodyBroadcast = "Lists of PC name and IP address: \n";
+                for (const auto &x : pcNameIPMap){
+                    valueBodyBroadcast += x.first;
+                    valueBodyBroadcast += " - ";
+                    valueBodyBroadcast += x.second;
+                    valueBodyBroadcast += "\n";
+                }
+                response.putParam(kBody, valueBodyBroadcast);
             }
-            
+            else 
+            {
+                if (sendTCP(request, response) != 0) {
+                    // TODO ERROR
+                    continue;
+                }
+            }
             // Send mail response
             string mailStr; 
             response.toMailString(mailSubject, mailStr);
+            
             // response.saveFiles();
 
             SMTPClient.SendMIME(mailFrom, {"Subject: " + mailSubject}, mailStr, response.getFiles());
@@ -198,20 +314,3 @@ void listenToInbox() {
     SMTPClient.CleanupSession();
 }
 
-int main() { 
-    WSADATA wsaData;
-    int iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
-    if (iResult != 0) {
-        printf("WSAStartup failed with error: %d\n", iResult);
-        return 1;
-    }
-
-    // Create folder "files"
-    CreateDirectoryA("files", NULL);
-
-    listenToInboxUDP();
- 
-    WSACleanup();
-
-    return 0;
-}

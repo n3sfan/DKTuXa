@@ -21,7 +21,6 @@ public:
    CSMTPClient& operator=(const CSMTPClient& Copy) = delete;
 
    const bool SendMIME(const std::string &strTo, const std::vector<std::string> &headers, const std::string &strMail, const std::vector<std::string> &paths);
-   const bool SendMIME(const std::string &strTo, const std::vector<std::string> &headers, const std::string &strMail, const std::vector<std::string> &paths, bool html);
 
    /* send a string as an e-mail */
    const bool SendString(const std::string& strFrom, const std::string& strTo,

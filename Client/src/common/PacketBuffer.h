@@ -29,6 +29,7 @@ class PacketBuffer {
         bool checkPos(int len);
     public:
         PacketBuffer(SOCKET socket, bool readMode);
+        
         int getPacketSize();
         void setPacketSize(int packetSize);
         int getPacketPos();

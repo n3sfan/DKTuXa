@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cctype>
 
+using namespace std;
+
 string toLower(string s) {
     transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return tolower(c); });
     return s;

