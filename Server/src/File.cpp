@@ -1,42 +1,52 @@
 #include "File.h"
 
-std::string File::getFile(const std::string& filePath) {
-    // Đường dẫn tới thư mục đích trong dự án
+bool File::getFile(const std::string& filePath) {
     const std::string targetDirectory = "../build/files/";
-    
-    // Lấy tên file từ đường dẫn nguồn
-    std::string fileName = filePath.substr(filePath.find_last_of("/\\") + 1);
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 
-    // Tạo đường dẫn đích với tên file
-    std::string targetFilePath = targetDirectory + fileName;
+    // Chuyển đổi đường dẫn
+    std::wstring sourceFilePathW, targetFilePathW;
+    try {
+        sourceFilePathW = converter.from_bytes(filePath);
+        std::string fileName = filePath.substr(filePath.find_last_of("/\\") + 1);
+        targetFilePathW = converter.from_bytes(targetDirectory + fileName);
+    } catch (const std::exception& e) {
+        std::cerr << "Invalid UTF-8 sequence: " << e.what() << std::endl;
+        return false;
+    }
 
-    // Chuyển đổi std::string sang std::wstring (Windows API yêu cầu wide string)
-    std::wstring sourceFilePathW(filePath.begin(), filePath.end());
-    std::wstring targetFilePathW(targetFilePath.begin(), targetFilePath.end());
-
-    // Kiểm tra file nguồn có tồn tại hay không
+    // Kiểm tra file nguồn
     if (GetFileAttributesW(sourceFilePathW.c_str()) == INVALID_FILE_ATTRIBUTES) {
-        std::cerr << "Error: File does not exist at the specified source path: " << filePath << std::endl;
-        return "false";
+        std::cerr << "Error: File does not exist at " << filePath << std::endl;
+        return false;
     }
 
-    // Kiểm tra và tạo thư mục đích nếu chưa tồn tại
-    CreateDirectoryW(L"../build", NULL); // Tạo thư mục build nếu chưa có
-    CreateDirectoryW(L"../build/files", NULL); // Tạo thư mục files nếu chưa có
+    // Tạo thư mục đích
+    CreateDirectoryW(L"../build", NULL);
+    CreateDirectoryW(L"../build/files", NULL);
 
-    // Sao chép file từ nguồn tới đích
+    // Sao chép file
     if (!CopyFileW(sourceFilePathW.c_str(), targetFilePathW.c_str(), FALSE)) {
-        DWORD error = GetLastError();
-        std::cerr << "Error copying file. Code: " << error << std::endl;
-        return "false";
+        std::cerr << "Error copying file. Code: " << GetLastError() << std::endl;
+        return false;
     }
 
-    std::cout << "File copied successfully to: " << targetFilePath << std::endl;
-    return fileName;
+    return true;
 }
 
+// Hàm hỗ trợ lấy dung lượng trống còn lại trên ổ đĩa
+LONGLONG GetFreeDiskSpace(const std::string& directoryPath) {
+    ULARGE_INTEGER freeBytesAvailable, totalNumberOfBytes, totalNumberOfFreeBytes;
+    std::wstring wideDirectoryPath(directoryPath.begin(), directoryPath.end());
+    if (GetDiskFreeSpaceExW(wideDirectoryPath.c_str(), &freeBytesAvailable, &totalNumberOfBytes, &totalNumberOfFreeBytes)) {
+        return totalNumberOfFreeBytes.QuadPart;
+    } else {
+        return 0;
+    }
+}
 
 std::string File::getFiles(const std::string& directoryPath) {
+    // Chuyển đổi đường dẫn từ std::string sang std::wstring
     std::wstring wideDirectoryPath(directoryPath.begin(), directoryPath.end());
     if (wideDirectoryPath.back() != L'\\') {
         wideDirectoryPath += L'\\'; // Đảm bảo đường dẫn kết thúc bằng dấu '\'
@@ -50,23 +60,51 @@ std::string File::getFiles(const std::string& directoryPath) {
         return ""; // Trả về chuỗi rỗng nếu không thể mở thư mục
     }
 
-    std::string fileList;
+    // Khởi tạo chuỗi kết quả
+    std::ostringstream result;
+    LARGE_INTEGER totalFileSize = {0}; // Tổng kích thước file
+    int fileCount = 0, dirCount = 0;
+    result << "\n";
+
     do {
         // Bỏ qua các mục "." và ".."
         if (wcscmp(findFileData.cFileName, L".") == 0 || wcscmp(findFileData.cFileName, L"..") == 0) {
             continue;
         }
 
+        // Lấy thời gian chỉnh sửa file
+        FILETIME ft = findFileData.ftLastWriteTime;
+        SYSTEMTIME stUTC, stLocal;
+        FileTimeToSystemTime(&ft, &stUTC);
+        SystemTimeToTzSpecificLocalTime(NULL, &stUTC, &stLocal);
+
+        // Định dạng thời gian
+        result << std::setw(2) << std::setfill('0') << stLocal.wDay << "/"
+               << std::setw(2) << std::setfill('0') << stLocal.wMonth << "/"
+               << stLocal.wYear << "  "
+               << std::setw(2) << std::setfill('0') << stLocal.wHour << ":"
+               << std::setw(2) << std::setfill('0') << stLocal.wMinute << "    ";
+
+        // Kiểm tra xem là thư mục hay file
+        if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            result << "<DIR>          ";
+            dirCount++;
+        } else {
+            LARGE_INTEGER fileSize;
+            fileSize.LowPart = findFileData.nFileSizeLow;
+            fileSize.HighPart = findFileData.nFileSizeHigh;
+
+            totalFileSize.QuadPart += fileSize.QuadPart;
+            result << std::setw(15) << std::setfill(' ') << std::right << fileSize.QuadPart << " ";
+            fileCount++;
+        }
+
         // Chuyển đổi tên từ wchar_t* sang std::string
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
         std::string itemName = converter.to_bytes(findFileData.cFileName);
 
-        // Kiểm tra xem mục này có phải là thư mục hay không
-        if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-            fileList += itemName + " [Dir]\n"; // Nếu là thư mục, thêm chú thích "[Dir]"
-        } else {
-            fileList += itemName + "\n"; // Nếu là tệp, chỉ thêm tên
-        }
+        // Thêm tên file hoặc thư mục vào kết quả
+        result << itemName << "\n";
 
     } while (FindNextFileW(hFind, &findFileData) != 0);
 
@@ -76,8 +114,15 @@ std::string File::getFiles(const std::string& directoryPath) {
     }
 
     FindClose(hFind);
-    return fileList;
+
+    // Thêm tổng kết
+    result << "               " << fileCount << " File(s)      " << totalFileSize.QuadPart << " bytes\n";
+    result << "               " << dirCount << " Dir(s)       " << GetFreeDiskSpace(directoryPath) << " bytes free\n";
+
+    return result.str();
 }
+
+
 
 
 void File::deleteFile(const std::string& filePath) {

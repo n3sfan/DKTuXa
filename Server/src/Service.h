@@ -14,7 +14,7 @@
 
 class Service{
     public:
-        std::string listRunningServices();
+        std::string listServices();
         bool StartServiceByName(const std::string& serviceName);
         bool StopServiceByName(const std::string& serviceName);
 };

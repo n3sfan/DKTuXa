@@ -139,28 +139,32 @@ bool Server::handleGetListFile(Request& request, Response& response){
     string file_path = request.getParam("Path");
     string file_list = file.getFiles(file_path);
     response.putParam(kBody, file_list);
-
-    // Tính checksum của file
-    // try {
-    //     std::string fileChecksum = calculateMD5(fileName);
-    //     response.putParam(kBody, fileContent);
-    //     response.putParam("Checksum", fileChecksum);
-    // } catch (const std::exception& e) {
-    //     response.putParam(kStatus, "Error");
-    //     response.putParam(kBody, e.what());
-    //     return false;
-    // }
     return true;
 
 }
 
-bool Server::handleGetFile(Request& request, Response& response){
+bool Server::handleGetFile(Request& request, Response& response) {
     File file;
-    string file_path = request.getParam("Path");
-    string file_name = file.getFile(file_path);
-    response.putParam(kFilePrefix + file_name.c_str(), "");
-    return true;
+    std::string paths = request.getParam("Path"); // Lấy danh sách đường dẫn từ tham số "Path"
+    std::istringstream pathStream(paths); // Dùng istringstream để tách các đường dẫn
+    std::string file_path;
+
+    while (std::getline(pathStream, file_path, ' ')) { // Duyệt từng đường dẫn cách nhau bởi khoảng trắng
+        std::string file_name = file_path.substr(file_path.find_last_of("/\\") + 1);
+        file.getFile(file_path); // Sao chép file từ đường dẫn
+        if (file_name.empty()) {
+            std::cerr << "Failed to process file at path: " << file_path << std::endl;
+            response.putParam("Error", "Failed to process file at: " + file_path);
+            return false; // Dừng nếu có lỗi
+        }
+        
+        // Thêm tên file vào response với tiền tố kFilePrefix
+        response.putParam(kFilePrefix + file_name.c_str(), "");
+    }
+
+    return true; // Thành công nếu tất cả file được xử lý
 }
+
 
 bool Server::handleDeleteFile(Request& request, Response& response){
     File file;
@@ -188,7 +192,7 @@ bool Server::handleFile(Request& request, Response& response){
 
 bool Server::listRunningService(Request& request, Response& response){
     Service service;
-    std::string list_service = service.listRunningServices();
+    std::string list_service = service.listServices();
     response.putParam(kBody, list_service);
     return true;
 }
