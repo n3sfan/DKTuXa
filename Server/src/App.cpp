@@ -60,6 +60,15 @@ std::string wideCharToString(const wchar_t* wideStr){
     return str;
 }
 
+std::wstring stringToWideChar(const char* str) {
+    if (!str) return L"";
+    size_t sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str, -1, nullptr, 0);
+    if (sizeNeeded == 0) return L"";
+    std::wstring wstr(sizeNeeded - 1, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str, -1, &wstr[0], sizeNeeded);
+    return wstr;
+}
+
 std::vector<std::string> App::getRunningTaskbarApps(){
     std::vector<std::string> runningApps;
 
@@ -79,7 +88,7 @@ std::vector<std::string> App::getRunningTaskbarApps(){
 
     // Sử dụng EnumWindows để duyệt qua tất cả cửa sổ hiển thị
     EnumWindows(enumWindowsCallback, (LPARAM)&runningApps);
-    
+    sort(runningApps.begin(), runningApps.end());
     return runningApps;
 }
 
@@ -106,40 +115,40 @@ bool App::closeApplication(const std::string& executablePath){
     return false;
 }
 
-void App::scanDirectory(const std::string directory, std::vector<AppInfo>& appList){
-    WIN32_FIND_DATAA findFileData;
+void App::scanDirectory(const std::wstring directory, std::vector<AppInfo>& appList){
+    WIN32_FIND_DATAW findFileData;
     HANDLE hFind;
-    std::string searchPattern = directory + "\\*";
+    std::wstring searchPattern = directory + L"\\*";
 
-    hFind = FindFirstFileA(searchPattern.c_str(), &findFileData);
+    hFind = FindFirstFileW(searchPattern.c_str(), &findFileData);
     if (hFind == INVALID_HANDLE_VALUE) {
-        std::cerr << "Can't locate the file: " << directory << "\n";
+        std::cerr << "Can't locate the file: " << wideCharToString(directory.c_str()) << "\n";
         return;
     }
 
     do {
-        if (strcmp(findFileData.cFileName, ".") == 0 || strcmp(findFileData.cFileName, "..") == 0) {
+        if (wcscmp(findFileData.cFileName, L".") == 0 || wcscmp(findFileData.cFileName, L"..") == 0) {
             continue;
         }
 
-        std::string fullPath = directory + "\\" + findFileData.cFileName;
+        std::wstring fullPath = directory + L"\\" + findFileData.cFileName;
         if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
             scanDirectory(fullPath, appList); // Quét thư mục con
-        } else if (strstr(findFileData.cFileName, ".lnk")) {
-            std::string appName = findFileData.cFileName;
-            appName = appName.substr(0, appName.find_last_of("."));
-            appList.push_back({ appName, fullPath });
+        } else if (wcsstr(findFileData.cFileName, L".lnk")) {
+            std::wstring appName = findFileData.cFileName;
+            appName = appName.substr(0, appName.find_last_of(L"."));
+            appList.push_back({ wideCharToString(appName.c_str()), wideCharToString(fullPath.c_str()) });
         }
-    } while (FindNextFileA(hFind, &findFileData) != 0);
+    } while (FindNextFileW(hFind, &findFileData) != 0);
 
     FindClose(hFind);
 }
 
-std::vector<AppInfo> App::getInstalledApps(){
+std::vector<AppInfo> App::getInstalledApps() {
     std::vector<AppInfo> appList;
-    std::vector<std::string> startMenuPaths = {
-        "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs",
-        std::string("C:\\Users\\") + getenv("USERNAME") + "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs"
+    std::vector<std::wstring> startMenuPaths = {
+        L"C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs",
+        std::wstring(L"C:\\Users\\") + stringToWideChar(getenv("USERNAME")) + L"\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs"
     };
 
     for (const auto& path : startMenuPaths) {

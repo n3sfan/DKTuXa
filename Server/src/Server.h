@@ -2,7 +2,7 @@
 #define SERVER_H_
 
 #include "common/Request.h"
-
+#include "common/Utils.h"
 
 class Server {
     public:
