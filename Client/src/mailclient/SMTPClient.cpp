@@ -139,6 +139,7 @@ const bool CSMTPClient::PrePerform()
          // Append files parts 
          for (std::string &path : m_filePaths) {
             part = curl_mime_addpart(m_mime);
+            curl_mime_encoder(part, "base64");
             curl_mime_filedata(part, path.c_str());
             // TODO FILE NAME
             curl_mime_filedata(part, path.c_str());

@@ -172,8 +172,7 @@ int main() {
 
     stopServer = false;
     std::thread serverThread(server);
-    // serverThread.join();
-    
+    // serverThread.join(); 
 
     while (true) {
         

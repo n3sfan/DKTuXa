@@ -8,12 +8,9 @@ std::map<std::string, std::string> pcNameIPMap;
 /**
  * Protocol 2 - UDP version.
  */
-
 int sendUDP(Request &request, Response &response) {
     SOCKET UdpSocket = INVALID_SOCKET;
     struct sockaddr_in destAddr;
-    unique_ptr<char[]> recvbuf(new char[8192]());
-    const int recvbuflen = 8192;
     int iResult;
 
     LAN lan;
@@ -47,7 +44,7 @@ int sendUDP(Request &request, Response &response) {
     destAddr.sin_port = htons(atoi(DEFAULT_PORT)); // Chuyển đổi port sang dạng network byte order
     destAddr.sin_addr.s_addr = inet_addr(broadcastIP.c_str());
 
-    connect(socket, (sockaddr*)&destAddr, sizeof(destAddr));
+    connect(UdpSocket, (sockaddr*)&destAddr, sizeof(destAddr));
 
     // Serialize dữ liệu request vào PacketBuffer
     PacketBuffer buffer(UdpSocket, false);
@@ -93,18 +90,9 @@ int sendUDP(Request &request, Response &response) {
             sockaddr_in senderAddr;
             int senderAddrSize = sizeof(senderAddr);
 
-            // Nhận dữ liệu
-            iResult = recvfrom(UdpSocket, recvbuf.get(), recvbuflen, 0,
-                               (sockaddr *)&senderAddr, &senderAddrSize);
-            if (iResult == SOCKET_ERROR) {
-                printf("recvfrom failed with error: %d\n", WSAGetLastError());
-                break;
-            }
-
             // Xử lý phản hồi
             printf("DEBUG: Received response from %s\n", inet_ntoa(senderAddr.sin_addr));
             PacketBuffer responseBuffer(UdpSocket, true);
-            responseBuffer.getBuffer() = std::string(recvbuf.get(), iResult);
             response.deserialize(responseBuffer);
 
             string PCInfo = response.getParam(kBody);

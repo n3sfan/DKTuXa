@@ -299,7 +299,7 @@ bool Server::screenshot(Request& request, Response &response){
     response.putParam(kStatus, "Ok");
 
     Screenshot screenshot;
-    const std::string filename = "../build/files/screencapture.bmp";
+    const std::string filename = "files/screencapture.bmp";
 
     if (subaction == "screenshot") {
         std::cout << "Started screenshot!\n";

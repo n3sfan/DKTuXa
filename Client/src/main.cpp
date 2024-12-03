@@ -36,8 +36,6 @@ int send(Request &request, Response &response) {
                     *ptr = NULL,
                     hints;
 
-    unique_ptr<char[]> recvbuf(new char[8192]());
-    const int recvbuflen = 8192;
     int iResult;
     
     ZeroMemory( &hints, sizeof(hints) );

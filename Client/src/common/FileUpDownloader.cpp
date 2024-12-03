@@ -5,6 +5,8 @@
 #include <string>
 #include <cstddef>
 #include <stdexcept>
+#include <thread>
+#include <chrono>
 
 const int kTimeoutMillis = 5000;
 
@@ -130,7 +132,7 @@ void Downloader::downloadFile(std::string host, std::string port, const std::str
     buf.resize(kBufferSize);   
     while (received < filesize) {
         int nextReceive = kBufferSize;
-        if (nextReceive + received > filesize) {
+        if (nextReceive > filesize - received) {
             nextReceive = filesize - received;
         }
 
@@ -159,7 +161,7 @@ void Downloader::joinThread() {
 
 void Uploader::uploadFile(SOCKET socket, const std::string &filename) {
     std::ifstream fin("files/" + filename, std::ios::binary);
-    if (!fin.is_open()) {
+    if (!fin.good()) {
         std::cout << "DEBUG: Error opening file " << filename << "\n";
         return;
     }
@@ -167,6 +169,7 @@ void Uploader::uploadFile(SOCKET socket, const std::string &filename) {
     fin.seekg(0, std::ios::end);
     int fileSize = (int)fin.tellg();
     fin.seekg(0, std::ios::beg);
+    // fin.clear();
 
     std::string checksum = "12345678901234567890123456789012"; // TODO`
     
@@ -182,15 +185,15 @@ void Uploader::uploadFile(SOCKET socket, const std::string &filename) {
     packetBuffer.flush();
     
     std::string buf;
-    buf.resize(kBufferSize);
+    buf.resize(kBufferSize + 5);
 
     int iResult;
     int totalRead = 0;
     while (totalRead < fileSize) {
         int nextSend = kBufferSize;
-        if (fileSize - totalRead > kBufferSize) {
+        if (fileSize - totalRead < nextSend) {
             nextSend = fileSize - totalRead;      
-            totalRead = kBufferSize;
+            totalRead = fileSize;
         } else {
             totalRead += kBufferSize;     
         }
@@ -198,6 +201,7 @@ void Uploader::uploadFile(SOCKET socket, const std::string &filename) {
         // Send buffer
         fin.read(buf.data(), nextSend);
         if (!fin.good()) {
+            fin.exceptions(std::ifstream::failbit);
             throw std::runtime_error("Error reading file");
         }
         sendall(socket, buf.c_str(), nextSend);  
