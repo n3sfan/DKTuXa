@@ -118,6 +118,10 @@ void Request::toMailString(string &subject, string &body) const {
         if (pr.first == kPassWord){
             continue; // Chặn trường Password được gửi lại
         }
+        if (pr.first[0] == '_') {
+            continue; // Skip internal params
+        }
+        
         body += pr.first;
         body += ": ";
         body += pr.second;

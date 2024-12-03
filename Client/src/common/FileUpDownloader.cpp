@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <cstddef>
+#include <stdexcept>
 
 const int kTimeoutMillis = 5000;
 
@@ -196,6 +197,9 @@ void Uploader::uploadFile(SOCKET socket, const std::string &filename) {
 
         // Send buffer
         fin.read(buf.data(), nextSend);
+        if (!fin.good()) {
+            throw std::runtime_error("Error reading file");
+        }
         sendall(socket, buf.c_str(), nextSend);  
     }
 

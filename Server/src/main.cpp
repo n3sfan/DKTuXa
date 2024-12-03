@@ -20,7 +20,7 @@
 
 
 SOCKET ListenSocket = INVALID_SOCKET;
-atomic_bool stopServer;
+std::atomic_bool stopServer;
 
 void closeClientSocket(SOCKET ClientSocket) {
     int iResult = shutdown(ClientSocket, SD_SEND);
@@ -87,7 +87,7 @@ int server() {
     std::cout << "Server started!\n";
 
     Server server;
-    unique_ptr<char[]> recvbuf(new char[8192]());
+    std::unique_ptr<char[]> recvbuf(new char[8192]());
     const int recvbuflen = 8192;
 
     // Server loop
@@ -144,12 +144,12 @@ int server() {
             }
 
             std::string filename = pr.first.substr(kFilePrefix.size());
-            cout << "DEBUG: Uploading file " << filename << "\n";
+            std::cout << "DEBUG: Uploading file " << filename << "\n";
             uploader.uploadFile(ClientSocket, filename);
-            cout << "DEBUG: Uploaded file " << filename << "\n";
+            std::cout << "DEBUG: Uploaded file " << filename << "\n";
         }
 
-        cout << "Finished downloading\n"; 
+        std::cout << "Finished downloading\n"; 
         uploader.joinThread(); 
     }
 
@@ -171,7 +171,7 @@ int main() {
     CreateDirectoryA("files", NULL);
 
     stopServer = false;
-    thread serverThread(server);
+    std::thread serverThread(server);
     // serverThread.join();
     
 

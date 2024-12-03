@@ -10,6 +10,7 @@
 
 const std::string kIPAttr = "IP";
 const std::string kSubAction = "Subaction";
+const std::string kUseHtml = "_UseHtml";
 
 const std::string kStatus = "Status";
 const std::string kBody = "Body";
@@ -19,6 +20,7 @@ const std::string kPassWord = "Password"; // Trường Password
 const std::string kPcName = "Pc Name"; // Trường nhận tên PC Name
 
 const std::string kAppPass = "sigc xldk cuzd bjhr";
+
 
 enum Action {
     ACTION_INVALID,
@@ -59,7 +61,7 @@ class Request {
         /**
          * MIME Format
          */
-        void parseFromMail(const std::string &mailHeaders, const std::string &mailBody, std::string &mailFrom, std::string &mailSubject);
+        void parseFromMail(const std::string &mailHeaders, const std::string &mailBody, std::string &mailFrom, std::string &mailSubject, std::string &mailMessageId);
        
         friend std::ostream& operator<<(std::ostream &os, Request &o);
 };

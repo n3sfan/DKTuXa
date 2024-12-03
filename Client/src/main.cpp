@@ -188,7 +188,7 @@ void listenToInbox() {
             cout << mailHeaders << " headers\n";
             cout << mailMessageId << " mid\n";
 
-            SMTPClient.SendMIME(mailFrom, {"References: " + mailMessageId, "In-Reply-To: " + mailMessageId, "Subject: Re: " + mailSubject}, mailStr, response.getFiles());
+            SMTPClient.SendMIME(mailFrom, {"References: " + mailMessageId, "In-Reply-To: " + mailMessageId, "Subject: Re: " + mailSubject}, mailStr, response.getFiles(), toLower(response.getParam(kUseHtml)) == "true");
             
             // response.deleteFiles();'
 
@@ -217,7 +217,7 @@ int main() {
     // Create folder "files"
     CreateDirectoryA("files", NULL);
 
-    listenToInboxUDP();
+    listenToInbox();
  
     WSACleanup();
 

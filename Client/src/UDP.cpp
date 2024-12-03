@@ -47,6 +47,8 @@ int sendUDP(Request &request, Response &response) {
     destAddr.sin_port = htons(atoi(DEFAULT_PORT)); // Chuyển đổi port sang dạng network byte order
     destAddr.sin_addr.s_addr = inet_addr(broadcastIP.c_str());
 
+    connect(socket, (sockaddr*)&destAddr, sizeof(destAddr));
+
     // Serialize dữ liệu request vào PacketBuffer
     PacketBuffer buffer(UdpSocket, false);
     request.serialize(buffer);
@@ -251,9 +253,9 @@ void listenToInboxUDP() {
             // cout << mailHeaders << " headers5\n";
             // cout << mailBody << " body\n";
 
-            string mailFrom, mailSubject;
+            string mailFrom, mailSubject, mailMessageId;
             Request request;
-            request.parseFromMail(mailHeaders, mailBody, mailFrom, mailSubject);
+            request.parseFromMail(mailHeaders, mailBody, mailFrom, mailSubject, mailMessageId);
 
             if (!isPassWordValid(request.getParam(kPassWord))){
                 // TODO NOTIFY

@@ -221,6 +221,7 @@ bool Server::stopService(Request& request, Response& response){
 
 bool Server::handleService(Request& request, Response& response){
     string subAction = request.getParam(kSubAction);
+    response.putParam(kUseHtml, "true"); 
     if (subAction == "listservice")
         return listRunningService(request, response);
     else if (subAction == "startservice")
