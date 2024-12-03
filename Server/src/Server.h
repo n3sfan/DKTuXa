@@ -2,7 +2,7 @@
 #define SERVER_H_
 
 #include "common/Request.h"
-#include "common/SHA256.h"
+
 
 class Server {
     public:
@@ -25,13 +25,9 @@ class Server {
         bool startService(Request& request, Response& response);
         bool stopService(Request& request, Response& response);
         bool handleService(Request& request, Response& response);
-
-        bool validateChecksum(Request& request, Response& response);
-        bool processRequestWithResumption(Request& request, Response& response);
-        void saveTempResponse(const std::string& responseData);
-        void clearTempResponse();
-        std::string loadTempResponse();
         
+        // bool validateChecksum(Request& request, Response& response);
+        // bool processReq(Request& request, Response& response);
 
         
         // Thinh
@@ -40,6 +36,7 @@ class Server {
         //Duc
         bool screenshot(Request& request, Response &response);
         bool getVideoByWebcam(Request& request, Response &response);
+        bool PCnameandIP(Request& request, Response& response);
         
         // Thuc hien
         bool processRequest(Request& request, Response &response);

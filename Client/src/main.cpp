@@ -5,7 +5,6 @@
 #include <thread>
 #include <cstring>
 #include <memory>
-#include <regex>
 
 #include <winsock2.h>
 #include <windows.h>
@@ -17,37 +16,39 @@
 #include "common/Utils.h"
 #include "common/FileUpDownloader.h"
 #include "common/SHA256.h"
+#include "common/AccountTable.h"
+#include "UDP.h"
 
 using namespace std;
 
 #define DEFAULT_PORT "5555"
 
-const string kAppPass = "sigc xldk cuzd bjhr";
-
 /**
  * Protocol 2.
  */
 int send(Request &request, Response &response) {
+    if (request.getParam(kIPAttr) == "" || request.getParam(kSubAction) == "") {
+        return 1;
+    }
+
     SOCKET ConnectSocket = INVALID_SOCKET;
     struct addrinfo *result = NULL,
                     *ptr = NULL,
                     hints;
 
-    unique_ptr<char[]> recvbuf(new char[8192]());
-    const int recvbuflen = 8192;
     int iResult;
     
     ZeroMemory( &hints, sizeof(hints) );
     hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_socktype = SOCK_STREAM; 
+    hints.ai_protocol = IPPROTO_TCP; 
 
     // Resolve the server address and port
     string host = request.getParam(kIPAttr);
     iResult = getaddrinfo(host.c_str(), DEFAULT_PORT, &hints, &result);
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
-        WSACleanup();
+        // WSACleanup();
         return 1;
     }
 
@@ -58,11 +59,12 @@ int send(Request &request, Response &response) {
             ptr->ai_protocol);
         if (ConnectSocket == INVALID_SOCKET) {
             printf("socket failed with error: %ld\n", WSAGetLastError());
-            WSACleanup();
+            // WSACleanup();
             return 1;
         }
 
         // Connect to server.
+        setSockOptions(ConnectSocket);
         iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
         if (iResult == SOCKET_ERROR) {
             closesocket(ConnectSocket);
@@ -76,7 +78,7 @@ int send(Request &request, Response &response) {
 
     if (ConnectSocket == INVALID_SOCKET) {
         printf("Unable to connect to server!\n");
-        WSACleanup();
+        // WSACleanup();
         return 1;
     }
 
@@ -92,7 +94,7 @@ int send(Request &request, Response &response) {
     if (iResult == SOCKET_ERROR) {
         printf("shutdown failed with error: %d\n", WSAGetLastError());
         closesocket(ConnectSocket);
-        WSACleanup();
+        // WSACleanup();
         return 1;
     }
 
@@ -118,12 +120,6 @@ int send(Request &request, Response &response) {
     downloader.joinThread();
 
     return 0;
-}
-
-bool isHtmlContent(const std::string& content) {
-    // Biểu thức chính quy để kiểm tra thẻ HTML
-    std::regex html_tags(R"(<[a-z][\s\S]*?>)");
-    return std::regex_search(content, html_tags);
 }
 
 void listenToInbox() {
@@ -162,9 +158,9 @@ void listenToInbox() {
             // cout << mailHeaders << " headers5\n";
             // cout << mailBody << " body\n";
 
-            string mailFrom, mailSubject;
+            string mailFrom, mailSubject, mailMessageId;
             Request request;
-            request.parseFromMail(mailHeaders, mailBody, mailFrom, mailSubject);
+            request.parseFromMail(mailHeaders, mailBody, mailFrom, mailSubject, mailMessageId);
 
             if (!isPassWordValid(request.getParam(kPassWord))){
                 // TODO NOTIFY
@@ -187,13 +183,14 @@ void listenToInbox() {
             response.toMailString(mailSubject, mailStr);
             // response.saveFiles();
 
-            bool use_html = isHtmlContent(mailBody);
+            cout << mailHeaders << " headers\n";
+            cout << mailMessageId << " mid\n";
 
-            SMTPClient.SendMIME(mailFrom, {"Subject: " + mailSubject}, mailStr, response.getFiles(), use_html);
+            SMTPClient.SendMIME(mailFrom, {"References: " + mailMessageId, "In-Reply-To: " + mailMessageId, "Subject: Re: " + mailSubject}, mailStr, response.getFiles(), toLower(response.getParam(kUseHtml)) == "true");
             
             // response.deleteFiles();'
 
-            cout << "---------\nResponse: " << response << "\n-------------\n";
+            // cout << "---------\nResponse: " << response << "\n-------------\n";
             // Add to queue
             // responsesQueue.push();
         }   

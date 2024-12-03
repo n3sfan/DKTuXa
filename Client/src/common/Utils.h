@@ -4,13 +4,11 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
-string toLower(string s);
-bool startsWith(string s, string prefix);
+std::string toLower(std::string s);
+bool startsWith(std::string s, std::string prefix);
 /**
- * Allow empty strings in the result
+ * Allow empty std::std::strings in the result
  */
-vector<string> split(string s, string delim);
-string trim(string s);
+std::vector<std::string> split(std::string s, std::string delim);
+std::string trim(std::string s);
 #endif

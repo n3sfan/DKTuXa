@@ -5,13 +5,14 @@
 #include <iostream>
 #include <filesystem>
 #include <string>
+#include "Server.h"
 
 class Screenshot
 {
     private:
         
     public:
-        void screenshot();
+        void screenshot(const std::string filename);
 };
 
 #endif // SCREENSHOT_H_

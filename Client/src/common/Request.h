@@ -8,17 +8,19 @@
 #include "PacketBuffer.h"
 #include "SHA256.h"
 
-using namespace std;
+const std::string kIPAttr = "IP";
+const std::string kSubAction = "Subaction";
+const std::string kUseHtml = "_UseHtml";
 
-const string kIPAttr = "IP";
-const string kSubAction = "Subaction";
+const std::string kStatus = "Status";
+const std::string kBody = "Body";
+const std::string kFilePrefix = "_File";
 
-const string kStatus = "Status";
-const string kBody = "Body";
-const string kFilePrefix = "_File";
+const std::string kPassWord = "Password"; // Trường Password
+const std::string kPcName = "Pc Name"; // Trường nhận tên PC Name
 
-const string kPassWord = "Password"; // Trường Password
-const string kPcName = "Pc Name"; // Trường nhận tên PC Name
+const std::string kAppPass = "sigc xldk cuzd bjhr";
+
 
 enum Action {
     ACTION_INVALID,
@@ -28,19 +30,20 @@ enum Action {
     ACTION_FILE,
     ACTION_SCREENSHOT,
     ACTION_WEBCAM,
-    ACTION_KEYLOG
+    ACTION_KEYLOG,
+    ACTION_BROADCAST
 };
 
 class Request {
     protected:
         Action action = ACTION_INVALID;
-        map<string, string> params;
+        std::map<std::string, std::string> params;
     public:
         virtual ~Request();
-        map<string, string>& getParams();
-        void setParams(const map<string, string> &params);
-        void putParam(string key, string value);
-        string getParam(string key);
+        std::map<std::string, std::string>& getParams();
+        void setParams(const std::map<std::string, std::string> &params);
+        void putParam(std::string key, std::string value);
+        std::string getParam(std::string key);
         void setAction(Action action);
         Action getAction() const;
 
@@ -54,37 +57,37 @@ class Request {
          */
         void deserialize(PacketBuffer &buf);
         
-        void toMailString(string &subject, string &body) const;
+        void toMailString(std::string &subject, std::string &body) const;
         /**
          * MIME Format
          */
-        void parseFromMail(const string &mailHeaders, const string &mailBody, string &mailFrom, string &mailSubject);
+        void parseFromMail(const std::string &mailHeaders, const std::string &mailBody, std::string &mailFrom, std::string &mailSubject, std::string &mailMessageId);
        
-        friend ostream& operator<<(ostream &os, Request &o);
+        friend std::ostream& operator<<(std::ostream &os, Request &o);
 };
 
 class Response : public Request {
     public:
-        vector<string> getFiles();
+        std::vector<std::string> getFiles();
         void saveFiles();
         void deleteFiles();
-        friend ostream& operator<<(ostream &os, Response &o);
+        friend std::ostream& operator<<(std::ostream &os, Response &o);
     // private:
     //     Action action;
-    //     map<string, string> results;
+    //     std::map<string, std::string> results;
     // public:
-    //     map<string, string>& getResults() const;
-    //     string serialize() const;
+    //     std::map<string, std::string>& getResults() const;
+    //     std::string serialize() const;
     //     void deserialize(const char *buf);
 };
 
 // TODO multi thread
-extern queue<Response*> responsesQueue;
+extern std::queue<Response*> responsesQueue;
 
-Action getAction(string name);
+Action getAction(std::string name);
 
-string toString(Action);
+std::string toString(Action);
 
-Request parseRequestFromMail(const string &subject, const string &body);
+Request parseRequestFromMail(const std::string &subject, const std::string &body);
 
 #endif

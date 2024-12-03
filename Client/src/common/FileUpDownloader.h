@@ -9,6 +9,8 @@
 
 #include "PacketBuffer.h"
 
+void setSockOptions(SOCKET socket);
+
 bool recvall(SOCKET ConnectSocket, char *buf, int len);
 bool sendall(SOCKET ConnectSocket, const char *buf, int len);
 

@@ -14,25 +14,14 @@ CSMTPClient::CSMTPClient(LogFnCallback oLogger) :
 }
 
 
-const bool CSMTPClient::SendMIME(const std::string &strTo, const std::vector<std::string> &headers, const std::string &strMail, const std::vector<std::string> &paths, bool html) {
+const bool CSMTPClient::SendMIME(const std::string &strTo, const std::vector<std::string> &headers, const std::string &strMail, const std::vector<std::string> &paths, bool useHtml) {
    m_strFrom = "<" + m_strUserName + ">";
    m_strTo = strTo;
    m_headersText = headers;
    m_strMail = strMail;
    m_filePaths = paths;
    m_eOperationType = SMTP_SEND_MIME;
-   use_html = html;
-   return Perform();
-}
-
-const bool CSMTPClient::SendMIME(const std::string &strTo, const std::vector<std::string> &headers, const std::string &strMail, const std::vector<std::string> &paths) {
-   m_strFrom = "<" + m_strUserName + ">";
-   m_strTo = strTo;
-   m_headersText = headers;
-   m_strMail = strMail;
-   m_filePaths = paths;
-   m_eOperationType = SMTP_SEND_MIME;
-   use_html = false;
+   use_html = useHtml; 
    return Perform();
 }
 
@@ -131,6 +120,7 @@ const bool CSMTPClient::PrePerform()
          for (std::string &s : m_headersText) {
             m_headers = curl_slist_append(m_headers, s.c_str());
          }
+         // m_headers = curl_slist_append(m_headers, NULL);
          curl_easy_setopt(m_pCurlSession, CURLOPT_HTTPHEADER, m_headers);
 
          // Build MIME message
@@ -140,14 +130,16 @@ const bool CSMTPClient::PrePerform()
          part = curl_mime_addpart(m_mime);
          curl_mime_data(part, m_strMail.c_str(), CURL_ZERO_TERMINATED);
          if (use_html) {
-            curl_mime_type(part, "text/html; charset=UTF-8");
+            curl_mime_type( part, "text/html; charset=UTF-8" );
          } else {
-            curl_mime_type(part, "text/plain; charset=UTF-8");
+            curl_mime_type( part, "text/plain; charset=UTF-8" );
          }
          curl_mime_encoder(part, "quoted-printable");
+   
          // Append files parts 
          for (std::string &path : m_filePaths) {
             part = curl_mime_addpart(m_mime);
+            curl_mime_encoder(part, "base64");
             curl_mime_filedata(part, path.c_str());
             // TODO FILE NAME
             curl_mime_filedata(part, path.c_str());

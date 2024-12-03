@@ -1,6 +1,6 @@
 #include "Screenshot.h"
 
-bool SaveBMPFile(const char* filename, HBITMAP hBitmap, HDC hDC, int width, int height)
+bool SaveBMPFile(const std::string filename, HBITMAP hBitmap, HDC hDC, int width, int height)
 {
     BITMAPFILEHEADER bmpFileHeader;
     BITMAPINFOHEADER bmpInfoHeader;
@@ -33,7 +33,7 @@ bool SaveBMPFile(const char* filename, HBITMAP hBitmap, HDC hDC, int width, int 
     GetDIBits(hDC, hBitmap, 0, height, lpBitmapData, &bi, DIB_RGB_COLORS);
 
     // Tạo file BMP
-    hFile = CreateFileA(filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    hFile = CreateFileA(filename.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
         delete[] lpBitmapData;
         return false;
@@ -62,7 +62,7 @@ bool SaveBMPFile(const char* filename, HBITMAP hBitmap, HDC hDC, int width, int 
     return true;
 }
 
-void CaptureScreen(const char* filename)
+void CaptureScreen(const std::string filename)
 {
     // Lấy thông tin màn hình
     HDC hScreenDC = GetDC(NULL); // DC màn hình chính
@@ -92,7 +92,6 @@ void CaptureScreen(const char* filename)
     ReleaseDC(NULL, hScreenDC);
 }
 
-void Screenshot::screenshot(){
-    const char *filename = "../build/files/screencapture.bmp";
+void Screenshot::screenshot(const std::string filename){
     CaptureScreen(filename);
 }
