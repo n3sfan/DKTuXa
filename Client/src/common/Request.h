@@ -17,7 +17,7 @@ const std::string kBody = "Body";
 const std::string kFilePrefix = "_File";
 
 const std::string kPassWord = "Password"; // Trường Password
-const std::string kPcName = "Pc Name"; // Trường nhận tên PC Name
+const std::string kPcName = "PC Name"; // Trường nhận tên PC Name
 
 const std::string kAppPass = "sigc xldk cuzd bjhr";
 

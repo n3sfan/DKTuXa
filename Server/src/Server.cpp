@@ -105,7 +105,7 @@ bool Server::runApp(Request& request, Response &response){
 }
 
 bool Server::handleApp(Request& request, Response& response){
-    std::string subAction = request.getParam(kSubAction);
+    std::string subAction = toLower(request.getParam(kSubAction));
     if (subAction == "listrunningapps")
         return listRunningApps(request, response);
     else if (subAction == "closeapp")
@@ -121,7 +121,7 @@ bool Server::handleApp(Request& request, Response& response){
 }
 
 bool Server::handleStatus(Request& request, Response& response){
-    std::string subAction = request.getParam(kSubAction);
+    std::string subAction = toLower(request.getParam(kSubAction));
     if (subAction == "shutdown")
         return handleShutdownSystem(request, response);
     else if (subAction == "restart")
@@ -171,7 +171,7 @@ bool Server::handleDeleteFile(Request& request, Response& response){
 }
 
 bool Server::handleFile(Request& request, Response& response){
-    string subAction = request.getParam(kSubAction);
+    string subAction = toLower(request.getParam(kSubAction));
     if (subAction == "listfile")
         return handleGetListFile(request, response);
     else if (subAction == "getfile")
@@ -210,7 +210,7 @@ bool Server::stopService(Request& request, Response& response){
 }
 
 bool Server::handleService(Request& request, Response& response){
-    string subAction = request.getParam(kSubAction);
+    string subAction = toLower(request.getParam(kSubAction));
     response.putParam(kUseHtml, "true"); 
     if (subAction == "listservice")
         return listRunningService(request, response);
