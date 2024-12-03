@@ -1,5 +1,41 @@
 #include "File.h"
 
+std::string File::getFile(const std::string& filePath) {
+    // Đường dẫn tới thư mục đích trong dự án
+    const std::string targetDirectory = "../build/files/";
+    
+    // Lấy tên file từ đường dẫn nguồn
+    std::string fileName = filePath.substr(filePath.find_last_of("/\\") + 1);
+
+    // Tạo đường dẫn đích với tên file
+    std::string targetFilePath = targetDirectory + fileName;
+
+    // Chuyển đổi std::string sang std::wstring (Windows API yêu cầu wide string)
+    std::wstring sourceFilePathW(filePath.begin(), filePath.end());
+    std::wstring targetFilePathW(targetFilePath.begin(), targetFilePath.end());
+
+    // Kiểm tra file nguồn có tồn tại hay không
+    if (GetFileAttributesW(sourceFilePathW.c_str()) == INVALID_FILE_ATTRIBUTES) {
+        std::cerr << "Error: File does not exist at the specified source path: " << filePath << std::endl;
+        return "false";
+    }
+
+    // Kiểm tra và tạo thư mục đích nếu chưa tồn tại
+    CreateDirectoryW(L"../build", NULL); // Tạo thư mục build nếu chưa có
+    CreateDirectoryW(L"../build/files", NULL); // Tạo thư mục files nếu chưa có
+
+    // Sao chép file từ nguồn tới đích
+    if (!CopyFileW(sourceFilePathW.c_str(), targetFilePathW.c_str(), FALSE)) {
+        DWORD error = GetLastError();
+        std::cerr << "Error copying file. Code: " << error << std::endl;
+        return "false";
+    }
+
+    std::cout << "File copied successfully to: " << targetFilePath << std::endl;
+    return fileName;
+}
+
+
 std::string File::getFiles(const std::string& directoryPath) {
     std::wstring wideDirectoryPath(directoryPath.begin(), directoryPath.end());
     if (wideDirectoryPath.back() != L'\\') {

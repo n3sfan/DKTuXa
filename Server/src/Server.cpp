@@ -132,13 +132,21 @@ bool Server::handleStatus(Request& request, Response& response){
 
 // Thang : File & Service
 // ---Start---
-bool Server::handleGetFile(Request& request, Response& response){
+bool Server::handleGetListFile(Request& request, Response& response){
     File file;
     string file_path = request.getParam("Path");
     string file_list = file.getFiles(file_path);
     response.putParam(kBody, file_list);
     return true;
 
+}
+
+bool Server::handleGetFile(Request& request, Response& response){
+    File file;
+    string file_path = request.getParam("Path");
+    string file_name = file.getFile(file_path);
+    response.putParam(kFilePrefix + file_name.c_str(), "");
+    return true;
 }
 
 bool Server::handleDeleteFile(Request& request, Response& response){
@@ -152,6 +160,8 @@ bool Server::handleDeleteFile(Request& request, Response& response){
 bool Server::handleFile(Request& request, Response& response){
     string subAction = request.getParam(kSubAction);
     if (subAction == "listfile")
+        return handleGetListFile(request, response);
+    else if (subAction == "getfile")
         return handleGetFile(request, response);
     else if (subAction == "deletefile")
         return handleDeleteFile(request, response);

@@ -17,6 +17,7 @@ class Server {
         bool handleStatus(Request& request, Response& response);
 
         // Thang
+        bool handleGetListFile(Request& request, Response& response);
         bool handleGetFile(Request& request, Response& response);
         bool handleDeleteFile(Request& request, Response& response);
         bool handleFile(Request& request, Response& response);
