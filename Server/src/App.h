@@ -19,8 +19,9 @@ class App{
         void shutdownSystem(); // done
         void restartSystem(); // done
         
-        bool closeApplication(const std::string& executablePath); // done
-        std::vector<std::string> getRunningTaskbarApps(); // done
+        std::vector<std::pair<std::string, DWORD>> getRunningTaskBarAppsbyPID();
+        bool closeApplication(DWORD pid);
+        bool closeApplicationByPIDandName(DWORD pid, const std::string &targetWindowName);
 
         bool runApplication(const std::string& executablePath); // done
         std::vector<AppInfo> getInstalledApps(); // done

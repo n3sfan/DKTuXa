@@ -53,55 +53,130 @@ bool Server::handleRestartSystem(Request& request, Response &response){
 }
 
 bool Server::listRunningApps(Request& request, Response &response){
-    App app;
-    std::vector<std::string> appList = app.getRunningTaskbarApps();
-    std::string appList_str = "Running Application: \n";
-    for (int i = 0; i < appList.size(); i++){
-        appList_str += std::to_string(i + 1) + ". " + appList[i] + "\n";
+    try{
+        App app;
+        auto appList = app.getRunningTaskBarAppsbyPID();
+        std::string appList_str = "Running Application: \n";
+        for (int i = 0; i < appList.size(); i++){
+            appList_str += std::to_string(i + 1) + ". " + appList[i].first + " - PID: " + std::to_string(appList[i].second) + "\n";
+        }
+        response.putParam(kBody, appList_str);
+        return true;
+    } catch(const std::exception& e){
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, std::string("Failed to list running applications."));
+        return false;
     }
-    response.putParam(kBody, appList_str);
-    return true;
 }
 
 bool Server::closeApp(Request& request, Response& response){
-    App app;
-    std::vector<std::string> appList = app.getRunningTaskbarApps();
+    try{
+        App app;
+        auto appList = app.getRunningTaskBarAppsbyPID();
+        int pid = 0;
+        try{
+            pid = std::stoi(request.getParam("PID"));
+        } catch(const std::exception& e){
+            throw std::invalid_argument("Invalid PID format.");
+        }
+        // Nếu có tên cửa sổ kèm theo nữa.
+        std::string WindowName = request.getParam("WindowName");
+        std::vector<std::pair<std::string, DWORD>> matchingApps;
+        for (const auto& appInfo : appList){
+            if (appInfo.second == pid){
+                matchingApps.push_back(appInfo);
+            }
+        }
+        if (matchingApps.empty()){
+            throw std::out_of_range("No running applications found with specified id");
+        }
+        if (!WindowName.empty()){
+            auto it = std::find_if(matchingApps.begin(), matchingApps.end(),
+                                   [&WindowName](const std::pair<std::string, DWORD>& app) {
+                                       return app.first == WindowName;
+                                   });
+            if (it == matchingApps.end()) {
+                throw std::out_of_range("No matching window found for PID and WindowName.");
+            }
 
-    int appIndex = std::stoi(request.getParam("AppIndex"));
-    if (appIndex <= 0 || appIndex > appList.size()){
-        response.putParam(kStatus, "Invalid index");
-        return false;
+            bool success = app.closeApplicationByPIDandName(pid, WindowName);
+            response.putParam(kBody, success ? "Application closed successfully." : "Failed to close application.");
+            response.putParam(kStatus, success ? "Success" : "Failure");
+            return success;
+        }
+        if (matchingApps.size() > 1){
+            std::string conflictMsg = "Multiple windows found with PID " + std::to_string(pid) + ":\n";
+            for (int i = 0; i < matchingApps.size(); ++i){
+                conflictMsg += std::to_string(i + 1) + ". " + matchingApps[i].first + "\n";
+            }
+            response.putParam(kStatus, "Conflict");
+            response.putParam(kBody, conflictMsg + "Specify the window to close by WindowName.");
+            return false;
+        }
+        bool success = app.closeApplication(pid);
+        response.putParam(kStatus, success ? "Success": "Falied");
+        response.putParam(kBody, success ? "Application closed successfully.": "Failed to close.");
+        return success;
+    } catch(const std::invalid_argument& e){
+        response.putParam(kStatus, "Invalid Parameter.");
+        response.putParam(kBody, std::string(e.what()));
+    } catch(const std::out_of_range &e){
+        response.putParam(kStatus, "Invalid Range.");
+        response.putParam(kBody, std::string(e.what()));
+    } catch(const std::exception& e){
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, "Failed to close application: " + std::string(e.what()));
     }
-    std::string appName = appList[appIndex - 1];
-    bool success = app.closeApplication(appName);
-    response.putParam(kStatus, success ? "Closed" : "Failed to close");
-    return true;
+    return false;
 }
 
 bool Server::listInstalledApps(Request& request, Response& response){
-    App app;
-    std::vector<AppInfo> appList = app.getInstalledApps();
-    std::string appList_str = "Installed application: \n";
-    for (int i = 0; i < appList.size(); i++){
-        appList_str += std::to_string(i + 1) + ". " + appList[i].name + "\n";
+    try{
+        App app;
+        std::vector<AppInfo> appList = app.getInstalledApps();
+        std::string appList_str = "Installed Applications.\n";
+        for (int i = 0; i < appList.size(); i++){
+            appList_str += std::to_string(i + 1) + ". " + appList[i].name + "\n";
+        }
+        response.putParam(kBody, appList_str);
+        return true;
+    } catch(const std::exception& e){
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, std::string("Failed to list installed applications.\n"));
+        return false;
     }
-    response.putParam(kBody, appList_str);
-    return true;
 }
 
 bool Server::runApp(Request& request, Response &response){
-    App app;
-    std::vector<AppInfo> appList = app.getInstalledApps();
+    try{
+        App app;
+        std::vector<AppInfo> appList = app.getInstalledApps();
+        int appIndex = 0;
+        try{
+            appIndex = std::stoi(request.getParam("AppIndex"));
+        } catch(const std::exception& e){
+            throw std::invalid_argument("Invalid AppIndex format");
+        }
 
-    int appIndex = std::stoi(request.getParam("AppIndex"));
-    if (appIndex <= 0 || appIndex > appList.size()){
-        response.putParam(kStatus, "Invalid index");
-        return false;
+        if (appIndex <= 0 || appIndex > appList.size()){
+            throw std::out_of_range("AppIndex out of range");
+        }
+        std::string appPath = appList[appIndex - 1].fullpath;
+        bool success = app.runApplication(appPath);
+
+        response.putParam(kBody, success ? "App is running" : "Failed to run");
+        return true;
+    } catch(const std::invalid_argument& e){
+        response.putParam(kStatus, "Invalid Parameter");
+        response.putParam(kBody, std::string(e.what()));
+    } catch (const std::out_of_range &e){
+        response.putParam(kStatus, "Invalid range");
+        response.putParam(kBody, std::string(e.what()));
+    } catch (const std::exception& e){
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, std::string("Failed to run application: ") + e.what());
     }
-    std::string appPath = appList[appIndex - 1].fullpath;
-    bool success = app.runApplication(appPath);
-    response.putParam(kBody, success ? "App is running" : "Failed to run");
-    return true;
+    return false;
 }
 
 bool Server::handleApp(Request& request, Response& response){
