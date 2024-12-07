@@ -14,6 +14,7 @@ int sendUDP(Request &request, Response &response) {
     int iResult;
 
     LAN lan;
+    lan.getWiFiIPAndSubnet();
     lan.calculateBroadcastIP();
 
     // Tính địa chỉ Broadcast IP trong file class LAN (ip, subnet, broadcast IP)

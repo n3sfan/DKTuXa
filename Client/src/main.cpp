@@ -215,15 +215,15 @@ int main() {
     // Create folder "files"
     CreateDirectoryA("files", NULL);
 
-    // listenToInboxUDP();
-    Request request;
-    Response response;
+    listenToInboxUDP();
+    // Request request;
+    // Response response;
 
-    request.setAction(ACTION_BROADCAST);
+    // request.setAction(ACTION_BROADCAST);
 
-    sendUDP(request, response);
+    // sendUDP(request, response);
 
-    cout << response << "\n";
+    // cout << response << "\n";
 
     WSACleanup();
 
