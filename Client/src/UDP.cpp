@@ -41,26 +41,13 @@ int sendUDP(Request &request, Response &response) {
     // Cấu hình địa chỉ đích
     ZeroMemory(&destAddr, sizeof(destAddr));
     destAddr.sin_family = AF_INET;
-    destAddr.sin_port = htons(atoi(DEFAULT_PORT)); // Chuyển đổi port sang dạng network byte order
+    destAddr.sin_port = htons(atoi(DEFAULT_PORT2)); // Chuyển đổi port sang dạng network byte order
     destAddr.sin_addr.s_addr = inet_addr(broadcastIP.c_str());
 
-    connect(UdpSocket, (sockaddr*)&destAddr, sizeof(destAddr));
-
     // Serialize dữ liệu request vào PacketBuffer
-    PacketBuffer buffer(UdpSocket, false);
+    PacketBuffer buffer(UdpSocket, false, &destAddr);
+    printf("DEBUG: Sending %zu bytes to broadcast on port %s...\n", buffer.getBuffer().size(), DEFAULT_PORT2);
     request.serialize(buffer);
-    printf("DEBUG: Sending %zu bytes to broadcast on port %s...\n", buffer.getBuffer().size(), DEFAULT_PORT);
-
-    // Gửi dữ liệu qua UDP
-    iResult = sendto(UdpSocket, buffer.getBuffer().data(), buffer.getBuffer().size(), 0,
-                     (sockaddr *)&destAddr, sizeof(destAddr));
-    if (iResult == SOCKET_ERROR) {
-        int error_code = WSAGetLastError();
-        printf("sendto failed with error: %d (%s)\n", error_code, strerror(error_code));
-        closesocket(UdpSocket);
-        WSACleanup();
-        return 1;
-    }
     printf("DEBUG: Data sent via broadcast. Waiting for responses...\n");
 
     //Nhận phản hồi từ các máy
@@ -92,7 +79,7 @@ int sendUDP(Request &request, Response &response) {
 
             // Xử lý phản hồi
             printf("DEBUG: Received response from %s\n", inet_ntoa(senderAddr.sin_addr));
-            PacketBuffer responseBuffer(UdpSocket, true);
+            PacketBuffer responseBuffer(UdpSocket, true, &senderAddr);
             response.deserialize(responseBuffer);
 
             string PCInfo = response.getParam(kBody);
@@ -129,7 +116,7 @@ int sendTCP(Request &request, Response &response) {
 
     // Resolve the server address and port
     string host = request.getParam(kIPAttr);
-    iResult = getaddrinfo(host.c_str(), DEFAULT_PORT, &hints, &result);
+    iResult = getaddrinfo(host.c_str(), DEFAULT_PORT2, &hints, &result);
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();
@@ -196,7 +183,7 @@ int sendTCP(Request &request, Response &response) {
 
         std::string file = pr.first.substr(kFilePrefix.size());
         cout << "DEBUG: Downloading file " << file << "\n";
-        downloader.downloadFile(host, DEFAULT_PORT, file);
+        downloader.downloadFile(host, DEFAULT_PORT2, file);
         cout << "DEBUG: Downloaded file " << file << "\n";
     }
 
