@@ -2,7 +2,7 @@
 #define SOCKET_BUFFER_H
 
 #include <string>
-
+#include <unistd.h>
 #include <winsock2.h>
 
 /**

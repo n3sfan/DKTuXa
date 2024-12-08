@@ -84,13 +84,16 @@ void PacketBuffer::flush() {
         int sent = 0;
         int iResult;
         int destAddressSize = sizeof(*destAddress);
+        int n = 4;
+        while (n--){
+            iResult = sendto(socket, buffer.data() + sent, buffer.size() - sent, 0, (sockaddr*)destAddress, destAddressSize);
 
-        iResult = sendto(socket, buffer.data() + sent, buffer.size() - sent, 0, (sockaddr*)destAddress, destAddressSize);
-
-        if (iResult < 0) { 
-            std::cout << "DEBUG: sendall error: " <<  WSAGetLastError() << "\n";
-        } else {
-            sent += iResult;
+            if (iResult < 0) { 
+                std::cout << "DEBUG: sendall error: " <<  WSAGetLastError() << "\n";
+            } else {
+                sent += iResult;
+            }
+            sleep(1);
         }
     } else {
         int sent = 0;

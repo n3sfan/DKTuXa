@@ -47,14 +47,14 @@ int sendUDP(Request &request, Response &response) {
 
     // Serialize dữ liệu request vào PacketBuffer
     PacketBuffer buffer(UdpSocket, false, &destAddr);
-    printf("DEBUG: Sending %zu bytes to broadcast on port %s...\n", buffer.getBuffer().size(), DEFAULT_PORT2);
+    // printf("DEBUG: Sending %zu bytes to broadcast on port %s...\n", buffer.getBuffer().size(), DEFAULT_PORT2);
     request.serialize(buffer);
     printf("DEBUG: Data sent via broadcast. Waiting for responses...\n");
 
     //Nhận phản hồi từ các máy
     fd_set readfds;
     timeval timeout;
-    timeout.tv_sec = 5; // Chờ phản hồi trong 5 giây
+    timeout.tv_sec = 10; // Chờ phản hồi trong 15 giây
     timeout.tv_usec = 0;
     bool hasResponses = false;
 
@@ -116,7 +116,17 @@ int sendTCP(Request &request, Response &response) {
     hints.ai_protocol = IPPROTO_TCP;
 
     // Resolve the server address and port
-    string host = request.getParam(kIPAttr);
+    string host;
+    if (!request.getParam(kIPAttr).empty()){
+        host = request.getParam(kIPAttr);
+    }
+    else if (!request.getParam(kPcName).empty()){
+        for (auto pi: pcNameIPMap){
+            if (pi.first == request.getParam(kPcName))
+                host = pi.second;
+        }
+    }
+
     iResult = getaddrinfo(host.c_str(), DEFAULT_PORT2, &hints, &result);
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
@@ -248,10 +258,12 @@ void listenToInboxUDP() {
             //Nếu là broadcast thì gửi bằng UDP
             if (request.getAction() == ACTION_BROADCAST)
             {
+                
                 if (sendUDP(request, response) != 0) {
                     // TODO ERROR
                     continue;
                 }
+                
                 string valueBodyBroadcast = "Lists of PC name and IP address: \n";
                 for (const auto &x : pcNameIPMap){
                     valueBodyBroadcast += x.first;

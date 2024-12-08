@@ -214,18 +214,6 @@ int serverUDP() {
 
     // Server loop
     while (!stopServer) {
-        // Nhận gói tin UDP
-        // iResult = recvfrom(ListenSocket, recvbuf.get(), recvbuflen, 0, (sockaddr*)&clientAddr, &clientAddrLen);
-        // std::cout << "Received: " << recvbuf.get() << std::endl;
-        // if (iResult == SOCKET_ERROR) {
-        //     printf("recvfrom failed with error: %d\n", WSAGetLastError());
-        //     closesocket(ListenSocket);
-        //     WSACleanup();
-        //     return 1;
-        // }
-
-        // connect(ListenSocket, (sockaddr*)&clientAddr, &clientAddrLen);
-
         // Xử lý request
         PacketBuffer buffer(ListenSocket, true, &clientAddr);
         // buffer.getBuffer() = std::string(recvbuf.get(), iResult); // Chuyển đổi buffer thành chuỗi
@@ -244,20 +232,6 @@ int serverUDP() {
         std::cout << "DEBUG: Sent response to " << inet_ntoa(clientAddr.sin_addr) << "\n";
 
         closesocket(ResponseSocket);
-        /* Upload Manager */
-        // Uploader uploader;
-        // for (const std::pair<std::string, std::string> &pr : response.getParams()) {
-        //     if (!startsWith(pr.first, kFilePrefix)) {
-        //         continue;
-        //     }
-
-        //     std::cout << "DEBUG: Uploading file " << pr.first << "\n";
-        //     uploader.uploadFile(ResponseSocket, pr.first);
-        //     std::cout << "DEBUG: Uploaded file " << pr.first << "\n";
-        // }
-
-        // std::cout << "Finished downloading\n"; 
-        // uploader.joinThread();
     }
 
     closesocket(ListenSocket);
