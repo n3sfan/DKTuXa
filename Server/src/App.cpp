@@ -69,50 +69,89 @@ std::wstring stringToWideChar(const char* str) {
     return wstr;
 }
 
-std::vector<std::string> App::getRunningTaskbarApps(){
-    std::vector<std::string> runningApps;
+std::vector<std::pair<std::string, DWORD>> App::getRunningTaskBarAppsbyPID(){
+    std::vector<std::pair<std::string, DWORD>> runningApps;
 
-    // Hàm callback để kiểm tra từng cửa sổ
+    // Hàm callback để duyệt các cửa sổ
     auto enumWindowsCallback = [](HWND hwnd, LPARAM lParam) -> BOOL {
-        if (IsWindowVisible(hwnd)) {  // Kiểm tra chỉ cần hiển thị
+        if (IsWindowVisible(hwnd)) { // Chỉ xử lý các cửa sổ hiển thị
             wchar_t windowTitle[256];
             GetWindowTextW(hwnd, windowTitle, 256);
 
-            if (wcslen(windowTitle) > 0) {  // Chỉ lấy các cửa sổ có tiêu đề
+            if (wcslen(windowTitle) > 0) { // Chỉ lấy các cửa sổ có tiêu đề
+                DWORD processId;
+                GetWindowThreadProcessId(hwnd, &processId);
+
                 std::string title = wideCharToString(windowTitle);
-                ((std::vector<std::string>*)lParam)->push_back(title);
+                ((std::vector<std::pair<std::string, DWORD>>*)lParam)
+                    ->emplace_back(title, processId);
             }
         }
         return TRUE;
     };
 
-    // Sử dụng EnumWindows để duyệt qua tất cả cửa sổ hiển thị
     EnumWindows(enumWindowsCallback, (LPARAM)&runningApps);
-    sort(runningApps.begin(), runningApps.end());
+
+    // Sắp xếp danh sách theo tên cửa sổ
+    std::sort(runningApps.begin(), runningApps.end(),
+              [](const auto& a, const auto& b) { return a.first < b.first; });
+
     return runningApps;
 }
 
-bool App::closeApplication(const std::string& executablePath){
-    HWND hwnd = FindWindowA(NULL, executablePath.c_str());
-    if (hwnd != NULL) {
-        // Gửi thông điệp WM_CLOSE để yêu cầu đóng cửa sổ
-        SendMessage(hwnd, WM_CLOSE, 0, 0);
-
-        // Đợi một chút để đảm bảo ứng dụng có thời gian xử lý thông điệp
-        Sleep(500);
-
-        // Kiểm tra xem cửa sổ còn tồn tại hay không
-        HWND hwndAfterClose = FindWindowA(NULL, executablePath.c_str());
-        if (hwndAfterClose == NULL) {
+bool App::closeApplication(DWORD processId){
+    HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, processId);
+    if (hProcess) {
+        if (TerminateProcess(hProcess, 0)) {
+            CloseHandle(hProcess);
             return true;
         } else {
-            return false;
+            std::cerr << "Failed to terminate process with PID: " << processId << "\n";
         }
+        CloseHandle(hProcess);
     } else {
-        std::cerr << "Application window not found: " << executablePath << "\n";
+        std::cerr << "Could not open process with PID: " << processId << "\n";
+    }
+    return false;
+}
+
+bool App::closeApplicationByPIDandName(DWORD targetPID, const std::string &targetWindowName){
+    bool isClosed = false;
+
+    // Hàm callback để kiểm tra từng cửa sổ
+    auto enumWindowsCallback = [](HWND hwnd, LPARAM lParam) -> BOOL {
+        auto* params = reinterpret_cast<std::pair<DWORD, std::string>*>(lParam);
+        DWORD pid;
+        GetWindowThreadProcessId(hwnd, &pid); // Lấy PID của cửa sổ hiện tại
+
+        wchar_t windowTitle[256];
+        GetWindowTextW(hwnd, windowTitle, 256); // Lấy tiêu đề cửa sổ
+
+        if (pid == params->first) { // So sánh PID
+            std::string windowName = wideCharToString(windowTitle);
+
+            if (windowName.find(params->second) != std::string::npos) { // So sánh tên cửa sổ
+                // Gửi thông điệp WM_CLOSE để yêu cầu đóng cửa sổ
+                SendMessage(hwnd, WM_CLOSE, 0, 0);
+                params->second = "closed"; // Đánh dấu cửa sổ đã được xử lý
+                return FALSE; // Dừng việc duyệt thêm cửa sổ
+            }
+        }
+        return TRUE; // Tiếp tục duyệt nếu không khớp
+    };
+
+    // Gói các tham số PID và tên cửa sổ vào một cặp
+    std::pair<DWORD, std::string> searchParams = {targetPID, targetWindowName};
+
+    // Duyệt qua tất cả cửa sổ hiển thị
+    EnumWindows(enumWindowsCallback, reinterpret_cast<LPARAM>(&searchParams));
+
+    // Kiểm tra kết quả
+    if (searchParams.second == "closed") {
+        isClosed = true;
     }
 
-    return false;
+    return isClosed;
 }
 
 void App::scanDirectory(const std::wstring directory, std::vector<AppInfo>& appList){

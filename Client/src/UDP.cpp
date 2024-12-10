@@ -14,6 +14,7 @@ int sendUDP(Request &request, Response &response) {
     int iResult;
 
     LAN lan;
+    lan.getWiFiIPAndSubnet();
     lan.calculateBroadcastIP();
 
     // Tính địa chỉ Broadcast IP trong file class LAN (ip, subnet, broadcast IP)
@@ -41,36 +42,23 @@ int sendUDP(Request &request, Response &response) {
     // Cấu hình địa chỉ đích
     ZeroMemory(&destAddr, sizeof(destAddr));
     destAddr.sin_family = AF_INET;
-    destAddr.sin_port = htons(atoi(DEFAULT_PORT)); // Chuyển đổi port sang dạng network byte order
+    destAddr.sin_port = htons(atoi(DEFAULT_PORT2)); // Chuyển đổi port sang dạng network byte order
     destAddr.sin_addr.s_addr = inet_addr(broadcastIP.c_str());
 
-    connect(UdpSocket, (sockaddr*)&destAddr, sizeof(destAddr));
-
     // Serialize dữ liệu request vào PacketBuffer
-    PacketBuffer buffer(UdpSocket, false);
+    PacketBuffer buffer(UdpSocket, false, &destAddr);
+    // printf("DEBUG: Sending %zu bytes to broadcast on port %s...\n", buffer.getBuffer().size(), DEFAULT_PORT2);
     request.serialize(buffer);
-    printf("DEBUG: Sending %zu bytes to broadcast on port %s...\n", buffer.getBuffer().size(), DEFAULT_PORT);
-
-    // Gửi dữ liệu qua UDP
-    iResult = sendto(UdpSocket, buffer.getBuffer().data(), buffer.getBuffer().size(), 0,
-                     (sockaddr *)&destAddr, sizeof(destAddr));
-    if (iResult == SOCKET_ERROR) {
-        int error_code = WSAGetLastError();
-        printf("sendto failed with error: %d (%s)\n", error_code, strerror(error_code));
-        closesocket(UdpSocket);
-        WSACleanup();
-        return 1;
-    }
     printf("DEBUG: Data sent via broadcast. Waiting for responses...\n");
 
     //Nhận phản hồi từ các máy
     fd_set readfds;
     timeval timeout;
-    timeout.tv_sec = 5; // Chờ phản hồi trong 5 giây
+    timeout.tv_sec = 10; // Chờ phản hồi trong 15 giây
     timeout.tv_usec = 0;
     bool hasResponses = false;
 
-    do {
+    // do {
         FD_ZERO(&readfds);
         FD_SET(UdpSocket, &readfds);
 
@@ -78,12 +66,14 @@ int sendUDP(Request &request, Response &response) {
         int activity = select(0, &readfds, NULL, NULL, &timeout);
         if (activity == SOCKET_ERROR) {
             printf("select failed with error: %d\n", WSAGetLastError());
-            break;
+            // break;
+            return 1;
         }
 
         if (activity == 0) { // Timeout hết thời gian chờ
             printf("DEBUG: Timeout reached, no more responses.\n");
-            break;
+            // break;
+            return 1;
         }
 
         if (FD_ISSET(UdpSocket, &readfds)) {
@@ -92,14 +82,14 @@ int sendUDP(Request &request, Response &response) {
 
             // Xử lý phản hồi
             printf("DEBUG: Received response from %s\n", inet_ntoa(senderAddr.sin_addr));
-            PacketBuffer responseBuffer(UdpSocket, true);
+            PacketBuffer responseBuffer(UdpSocket, true, &senderAddr);
             response.deserialize(responseBuffer);
 
             string PCInfo = response.getParam(kBody);
             processAndStore(PCInfo, pcNameIPMap); // Lưu thông tin phản hồi
             hasResponses = true;
         }
-    } while (true);
+    // } while (true);
 
     if (!hasResponses) {
         printf("DEBUG: No responses received.\n");
@@ -107,7 +97,6 @@ int sendUDP(Request &request, Response &response) {
 
     // Dọn dẹp tài nguyên
     closesocket(UdpSocket);
-    WSACleanup();
 
     return 0;
 }
@@ -128,8 +117,18 @@ int sendTCP(Request &request, Response &response) {
     hints.ai_protocol = IPPROTO_TCP;
 
     // Resolve the server address and port
-    string host = request.getParam(kIPAttr);
-    iResult = getaddrinfo(host.c_str(), DEFAULT_PORT, &hints, &result);
+    string host;
+    if (!request.getParam(kIPAttr).empty()){
+        host = request.getParam(kIPAttr);
+    }
+    else if (!request.getParam(kPcName).empty()){
+        for (auto pi: pcNameIPMap){
+            if (pi.first == request.getParam(kPcName))
+                host = pi.second;
+        }
+    }
+
+    iResult = getaddrinfo(host.c_str(), DEFAULT_PORT2, &hints, &result);
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();
@@ -196,7 +195,7 @@ int sendTCP(Request &request, Response &response) {
 
         std::string file = pr.first.substr(kFilePrefix.size());
         cout << "DEBUG: Downloading file " << file << "\n";
-        downloader.downloadFile(host, DEFAULT_PORT, file);
+        downloader.downloadFile(host, DEFAULT_PORT2, file);
         cout << "DEBUG: Downloaded file " << file << "\n";
     }
 
@@ -208,11 +207,6 @@ int sendTCP(Request &request, Response &response) {
 void listenToInboxUDP() {
     string str;
 
-    CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
-    SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
-    SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass,
-			CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
-
     // Receive mail
     while (true) {
         CIMAPClient IMAPClient([](const std::string& s){ cout << s << "\n"; return; });  
@@ -223,6 +217,8 @@ void listenToInboxUDP() {
         str = "";
         bool ok = IMAPClient.Search(str, CIMAPClient::SearchOption::UNSEEN);
         cout << str << "\n";
+
+        bool broadcasted = false;
 
         vector<string> mailIds = split(str.substr(string("* SEARCH ").size()), " ");
         for (string &mailId : mailIds) {
@@ -258,49 +254,52 @@ void listenToInboxUDP() {
             Response response;
 
             //Nếu là broadcast thì gửi bằng UDP
-            if (request.getAction() == ACTION_BROADCAST)
-            {
-                if (sendUDP(request, response) != 0) {
-                    // TODO ERROR
-                    continue;
-                }
-                string valueBodyBroadcast = "Lists of PC name and IP address: \n";
-                for (const auto &x : pcNameIPMap){
-                    valueBodyBroadcast += x.first;
-                    valueBodyBroadcast += " - ";
-                    valueBodyBroadcast += x.second;
-                    valueBodyBroadcast += "\n";
-                }
-                response.putParam(kBody, valueBodyBroadcast);
+            if (request.getAction() != ACTION_BROADCAST) {
+                continue;
             }
-            else 
-            {
-                if (sendTCP(request, response) != 0) {
-                    // TODO ERROR
-                    continue;
-                }
+                
+            if (sendUDP(request, response) != 0) {
+                // TODO ERROR
+                continue;
             }
+            
+            string valueBodyBroadcast = "Lists of PC name and IP address: \n";
+            for (const auto &x : pcNameIPMap){
+                valueBodyBroadcast += x.first;
+                valueBodyBroadcast += " - ";
+                valueBodyBroadcast += x.second;
+                valueBodyBroadcast += "\n";
+            }
+            response.putParam(kBody, valueBodyBroadcast);
+           
             // Send mail response
             string mailStr; 
             response.toMailString(mailSubject, mailStr);
             
             // response.saveFiles();
 
+            CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
+            SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
+            SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass,
+			CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
             SMTPClient.SendMIME(mailFrom, {"Subject: " + mailSubject}, mailStr, response.getFiles());
+            SMTPClient.CleanupSession();
             
             // response.deleteFiles();'
 
             cout << "---------\nResponse: " << response << "\n-------------\n";
+            broadcasted = true;
             // Add to queue
             // responsesQueue.push();
         }   
 
         IMAPClient.CleanupSession();
 
+        if (broadcasted)
+            break;
+
         // TODO SLOW
         this_thread::sleep_for(4s);
     }    
-
-    SMTPClient.CleanupSession();
 }
 

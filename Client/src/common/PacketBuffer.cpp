@@ -6,23 +6,53 @@
 #include <sstream>
 
 PacketBuffer::PacketBuffer(SOCKET socket, bool readMode): socket(socket), readMode(readMode), packetSize(4), packetPos(0) {
+    isUDP = false;
+
     if (readMode) {
         std::string recvbuf;
         recvbuf.resize(kBufferSize);
 
         int received = 0;
         int iResult;
-        while ((iResult = recv(socket, recvbuf.data(), kBufferSize, 0)) > 0) {
+        while ((iResult = recv(socket, recvbuf.data(), kBufferSize, 0))) {
             if (iResult < 0) { 
                 std::cout << "DEBUG: recvall error: " <<  WSAGetLastError() << "\n";
                 // NOTIFY
                 throw std::runtime_error("Error in readMode");
                 break;
             }
+        
             buffer += std::string(recvbuf.c_str(), iResult);
             received += iResult;
         }
         // std::cout << "DEBUG: " << buffer << "\n";
+    }
+}
+
+PacketBuffer::PacketBuffer(SOCKET socket, bool readMode, sockaddr_in *destAddress): socket(socket), readMode(readMode), packetSize(4), packetPos(0), destAddress(destAddress) {   
+    isUDP = true;
+
+    if (readMode) {
+        std::cout << "DEBUG: UDP readMode\n";
+
+        std::string recvbuf;
+        recvbuf.resize(kBufferSize);
+        int destAddressSize = sizeof(*destAddress);
+
+        int received = 0;
+        int iResult;
+        if ((iResult = recvfrom(socket, recvbuf.data(), kBufferSize, 0, (sockaddr*) destAddress, &destAddressSize))) {
+            if (iResult < 0) { 
+                std::cout << "DEBUG: UDP recvall error: " <<  WSAGetLastError() << "\n";
+                // NOTIFY
+                throw std::runtime_error("UDP Error in readMode");
+            }
+            buffer += std::string(recvbuf.c_str(), iResult);
+            received += iResult;
+        }
+
+        // std::cout << "DEBUG: received" << received << " bytes. UDP: " << isUDP << ". Buffer: " << buffer.c_str() << "\n";
+        // std::cout << WSAGetLastError() << " error\n";
     }
 }
 
@@ -53,17 +83,34 @@ std::string &PacketBuffer::getBuffer() {
 }
 
 void PacketBuffer::flush() { 
-    int sent = 0;
-    int iResult;
-    do {
-        iResult = send(socket, buffer.data() + sent, buffer.size() - sent, 0);
+    if (isUDP) {
+        int sent = 0;
+        int iResult;
+        int destAddressSize = sizeof(*destAddress);
+        int n = 4;
+        while (n--){
+            iResult = sendto(socket, buffer.data() + sent, buffer.size() - sent, 0, (sockaddr*)destAddress, destAddressSize);
 
-        if (iResult < 0) { 
-            std::cout << "DEBUG: sendall error: " <<  WSAGetLastError() << "\n";
-        } else {
-            sent += iResult;
+            if (iResult < 0) { 
+                std::cout << "DEBUG: sendall error: " <<  WSAGetLastError() << "\n";
+            } else {
+                sent += iResult;
+            }
+            // sleep(1);
         }
-    } while (sent < buffer.size());
+    } else {
+        int sent = 0;
+        int iResult;
+        do {
+            iResult = send(socket, buffer.data() + sent, buffer.size() - sent, 0);
+
+            if (iResult < 0) { 
+                std::cout << "DEBUG: sendall error: " <<  WSAGetLastError() << "\n";
+            } else {
+                sent += iResult;
+            }
+        } while (sent < buffer.size());
+    }
 }
 
 bool PacketBuffer::read(char *buf, int len) {

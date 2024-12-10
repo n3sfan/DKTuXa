@@ -2,7 +2,7 @@
 #define SOCKET_BUFFER_H
 
 #include <string>
-
+#include <unistd.h>
 #include <winsock2.h>
 
 /**
@@ -20,15 +20,20 @@ class PacketBuffer {
          */
         int packetSize;
 
+        bool isUDP = false;
         bool readMode;
         int packetPos;
 
         int kBufferSize = 8192;
         std::string buffer = "";
 
+        /* UDP */
+        sockaddr_in *destAddress;
+
         bool checkPos(int len);
     public:
         PacketBuffer(SOCKET socket, bool readMode);
+        PacketBuffer(SOCKET socket, bool readMode, sockaddr_in *destAddress);
         
         int getPacketSize();
         void setPacketSize(int packetSize);

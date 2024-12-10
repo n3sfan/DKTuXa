@@ -20,7 +20,7 @@
 #include "common/AccountTable.h"
 
 #define DEFAULT_PORT "5555"
-// #define DEFAULT_PORT 5555
+#define DEFAULT_PORT2 "5556" 
 
 //broadcast 
 extern bool isBroadcast; 

@@ -5,6 +5,7 @@
 #include <thread>
 #include <atomic>
 #include <cstring>
+#include <future>
 
 #include <winsock2.h>
 #include <windows.h>
@@ -17,10 +18,11 @@
 #include "common/FileUpDownloader.h"
 
 #define DEFAULT_PORT "5555"
-
+#define DEFAULT_PORT2 "5556"
 
 SOCKET ListenSocket = INVALID_SOCKET;
 std::atomic_bool stopServer;
+std::atomic_bool serverFinished;
 
 void closeClientSocket(SOCKET ClientSocket) {
     int iResult = shutdown(ClientSocket, SD_SEND);
@@ -37,6 +39,8 @@ void closeClientSocket(SOCKET ClientSocket) {
 
 // TODO NOTIFY ON ERROR
 int server() {
+    serverFinished = false;
+
     int iResult;
 
     SOCKET ClientSocket = INVALID_SOCKET;
@@ -154,9 +158,108 @@ int server() {
     }
 
     closesocket(ListenSocket);
+    serverFinished = true;
 
     return 0;
 }
+
+int serverUDP() {
+    serverFinished = false;
+    
+    int iResult;
+
+    SOCKET ClientSocket = INVALID_SOCKET;
+
+    struct addrinfo *result = NULL;
+    struct addrinfo hints;
+
+    int iSendResult;
+
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM; // Sử dụng SOCK_DGRAM cho UDP
+    hints.ai_protocol = IPPROTO_UDP;
+    hints.ai_flags = AI_PASSIVE;
+
+    // Resolve the server address and port
+    iResult = getaddrinfo(NULL, DEFAULT_PORT2, &hints, &result);
+    if ( iResult != 0 ) {
+        printf("getaddrinfo failed with error: %d\n", iResult);
+        WSACleanup();
+        return 1;
+    }
+
+    // Create a SOCKET for the server to listen for client connections.
+    ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    if (ListenSocket == INVALID_SOCKET) {
+        printf("socket failed with error: %ld\n", WSAGetLastError());
+        freeaddrinfo(result);
+        WSACleanup();
+        return 1;
+    }
+
+    // Setup the UDP listening socket (bind với cổng)
+    iResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
+    if (iResult == SOCKET_ERROR) {
+        printf("bind failed with error: %d\n", WSAGetLastError());
+        freeaddrinfo(result);
+        closesocket(ListenSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    freeaddrinfo(result);
+
+    // Server Side
+    std::cout << "Server started!\n";
+
+    Server server;
+    sockaddr_in clientAddr;
+    int clientAddrLen = sizeof(clientAddr);
+
+    // Server loop
+    while (!stopServer) {
+        // Xử lý request
+        PacketBuffer buffer(ListenSocket, true, &clientAddr);
+        // buffer.getBuffer() = std::string(recvbuf.get(), iResult); // Chuyển đổi buffer thành chuỗi
+        Request request;
+        Response response;
+        request.deserialize(buffer);
+        server.processRequest(request, response);
+
+        // std::cout << "DEBUG: Received data from " << inet_ntoa(clientAddr.sin_addr) << "\n";
+
+        // Gửi phản hồi lại client qua UDP
+        SOCKET ResponseSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+        buffer = PacketBuffer(ResponseSocket, false, &clientAddr);
+        response.serialize(buffer);
+        std::cout << "DEBUG: Sent response to " << inet_ntoa(clientAddr.sin_addr) << "\n";
+
+        closesocket(ResponseSocket);
+        break;
+    }
+
+    closesocket(ListenSocket);
+    serverFinished = true;
+
+    return 0;
+}
+
+// void scheduleServer() {
+//     bool udp = false;
+//     while (true) {
+//         std::thread serverThread(udp ? serverUDP : server);
+//         std::this_thread::sleep_for(std::chrono::seconds(udp ? 5 : 10));
+//         std::cout << "Stopping server\n";
+//         stopServer = true;
+//         while (!serverFinished) {
+//             std::this_thread::sleep_for(std::chrono::seconds(1));
+//         }
+//         udp = !udp;
+//         stopServer = false;
+//     }
+// }
 
 int main() {
     WSAData wsaData;
@@ -171,12 +274,8 @@ int main() {
     CreateDirectoryA("files", NULL);
 
     stopServer = false;
-    std::thread serverThread(server);
-    // serverThread.join(); 
-
-    while (true) {
-        
-    }
+    serverUDP();
+    server();
 
     // cleanup
     WSACleanup();

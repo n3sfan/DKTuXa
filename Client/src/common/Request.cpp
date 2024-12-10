@@ -124,6 +124,9 @@ void Request::toMailString(string &subject, string &body) const {
         
         body += pr.first;
         body += ": ";
+        if (pr.first == kBody) {
+            body += "\n";
+        }
         body += pr.second;
         body += "\r\n";
     }

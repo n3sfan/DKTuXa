@@ -27,7 +27,7 @@ using namespace std;
  * Protocol 2.
  */
 int send(Request &request, Response &response) {
-    if (request.getParam(kIPAttr) == "" || request.getParam(kSubAction) == "") {
+    if (request.getParam(kSubAction).empty() || (request.getParam(kIPAttr).empty() && request.getParam(kPcName).empty())){
         return 1;
     }
 
@@ -44,7 +44,16 @@ int send(Request &request, Response &response) {
     hints.ai_protocol = IPPROTO_TCP; 
 
     // Resolve the server address and port
-    string host = request.getParam(kIPAttr);
+    string host;
+    if (!request.getParam(kIPAttr).empty()){
+        host = request.getParam(kIPAttr);
+    }
+    else if (!request.getParam(kPcName).empty()){
+        auto pi = pcNameIPMap.find(request.getParam(kPcName));
+        if (pi != pcNameIPMap.end()){
+            host = pi->second;
+        }
+    }
     iResult = getaddrinfo(host.c_str(), DEFAULT_PORT, &hints, &result);
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
@@ -125,11 +134,6 @@ int send(Request &request, Response &response) {
 void listenToInbox() {
     string str;
 
-    CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
-    SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
-    SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass,
-			CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
-
     // Receive mail
     while (true) {
         CIMAPClient IMAPClient([](const std::string& s){ cout << s << "\n"; return; });  
@@ -186,7 +190,12 @@ void listenToInbox() {
             cout << mailHeaders << " headers\n";
             cout << mailMessageId << " mid\n";
 
+            CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
+            SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
+            SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass, 
+                                CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
             SMTPClient.SendMIME(mailFrom, {"References: " + mailMessageId, "In-Reply-To: " + mailMessageId, "Subject: Re: " + mailSubject}, mailStr, response.getFiles(), toLower(response.getParam(kUseHtml)) == "true");
+            SMTPClient.CleanupSession();
             
             // response.deleteFiles();'
 
@@ -200,8 +209,6 @@ void listenToInbox() {
         // TODO SLOW
         this_thread::sleep_for(4s);
     }    
-
-    SMTPClient.CleanupSession();
 }
 
 int main() { 
@@ -214,9 +221,18 @@ int main() {
 
     // Create folder "files"
     CreateDirectoryA("files", NULL);
-
+    
+    listenToInboxUDP();
     listenToInbox();
- 
+    // Request request;
+    // Response response;
+
+    // request.setAction(ACTION_BROADCAST);
+
+    // sendUDP(request, response);
+
+    // cout << response << "\n";
+
     WSACleanup();
 
     return 0;
