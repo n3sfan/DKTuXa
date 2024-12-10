@@ -189,6 +189,5 @@ std::string resolvePcNameToIP(const std::string& pcName){
     inet_ntop(AF_INET, &(ipv4->sin_addr), ipStr, INET_ADDRSTRLEN);
 
     freeaddrinfo(res);
-    WSACleanup();
     return std::string(ipStr);
 }

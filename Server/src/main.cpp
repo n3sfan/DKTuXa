@@ -5,6 +5,7 @@
 #include <thread>
 #include <atomic>
 #include <cstring>
+#include <future>
 
 #include <winsock2.h>
 #include <windows.h>
@@ -21,6 +22,7 @@
 
 SOCKET ListenSocket = INVALID_SOCKET;
 std::atomic_bool stopServer;
+std::atomic_bool serverFinished;
 
 void closeClientSocket(SOCKET ClientSocket) {
     int iResult = shutdown(ClientSocket, SD_SEND);
@@ -37,6 +39,8 @@ void closeClientSocket(SOCKET ClientSocket) {
 
 // TODO NOTIFY ON ERROR
 int server() {
+    serverFinished = false;
+
     int iResult;
 
     SOCKET ClientSocket = INVALID_SOCKET;
@@ -154,11 +158,14 @@ int server() {
     }
 
     closesocket(ListenSocket);
+    serverFinished = true;
 
     return 0;
 }
 
 int serverUDP() {
+    serverFinished = false;
+    
     int iResult;
 
     SOCKET ClientSocket = INVALID_SOCKET;
@@ -207,8 +214,6 @@ int serverUDP() {
     std::cout << "Server started!\n";
 
     Server server;
-    std::unique_ptr<char[]> recvbuf(new char[8192]());
-    const int recvbuflen = 8192;
     sockaddr_in clientAddr;
     int clientAddrLen = sizeof(clientAddr);
 
@@ -232,12 +237,29 @@ int serverUDP() {
         std::cout << "DEBUG: Sent response to " << inet_ntoa(clientAddr.sin_addr) << "\n";
 
         closesocket(ResponseSocket);
+        break;
     }
 
     closesocket(ListenSocket);
+    serverFinished = true;
 
     return 0;
 }
+
+// void scheduleServer() {
+//     bool udp = false;
+//     while (true) {
+//         std::thread serverThread(udp ? serverUDP : server);
+//         std::this_thread::sleep_for(std::chrono::seconds(udp ? 5 : 10));
+//         std::cout << "Stopping server\n";
+//         stopServer = true;
+//         while (!serverFinished) {
+//             std::this_thread::sleep_for(std::chrono::seconds(1));
+//         }
+//         udp = !udp;
+//         stopServer = false;
+//     }
+// }
 
 int main() {
     WSAData wsaData;
@@ -252,13 +274,8 @@ int main() {
     CreateDirectoryA("files", NULL);
 
     stopServer = false;
-    // std::thread serverThread(server);
-    std::thread serverThread2(serverUDP);
-    // serverThread.join(); 
-
-    while (true) {
-        
-    }
+    serverUDP();
+    server();
 
     // cleanup
     WSACleanup();

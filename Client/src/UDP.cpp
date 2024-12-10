@@ -58,7 +58,7 @@ int sendUDP(Request &request, Response &response) {
     timeout.tv_usec = 0;
     bool hasResponses = false;
 
-    do {
+    // do {
         FD_ZERO(&readfds);
         FD_SET(UdpSocket, &readfds);
 
@@ -66,12 +66,14 @@ int sendUDP(Request &request, Response &response) {
         int activity = select(0, &readfds, NULL, NULL, &timeout);
         if (activity == SOCKET_ERROR) {
             printf("select failed with error: %d\n", WSAGetLastError());
-            break;
+            // break;
+            return 1;
         }
 
         if (activity == 0) { // Timeout hết thời gian chờ
             printf("DEBUG: Timeout reached, no more responses.\n");
-            break;
+            // break;
+            return 1;
         }
 
         if (FD_ISSET(UdpSocket, &readfds)) {
@@ -87,7 +89,7 @@ int sendUDP(Request &request, Response &response) {
             processAndStore(PCInfo, pcNameIPMap); // Lưu thông tin phản hồi
             hasResponses = true;
         }
-    } while (true);
+    // } while (true);
 
     if (!hasResponses) {
         printf("DEBUG: No responses received.\n");
@@ -95,7 +97,6 @@ int sendUDP(Request &request, Response &response) {
 
     // Dọn dẹp tài nguyên
     closesocket(UdpSocket);
-    WSACleanup();
 
     return 0;
 }
@@ -206,11 +207,6 @@ int sendTCP(Request &request, Response &response) {
 void listenToInboxUDP() {
     string str;
 
-    CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
-    SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
-    SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass,
-			CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
-
     // Receive mail
     while (true) {
         CIMAPClient IMAPClient([](const std::string& s){ cout << s << "\n"; return; });  
@@ -221,6 +217,8 @@ void listenToInboxUDP() {
         str = "";
         bool ok = IMAPClient.Search(str, CIMAPClient::SearchOption::UNSEEN);
         cout << str << "\n";
+
+        bool broadcasted = false;
 
         vector<string> mailIds = split(str.substr(string("* SEARCH ").size()), " ");
         for (string &mailId : mailIds) {
@@ -256,51 +254,52 @@ void listenToInboxUDP() {
             Response response;
 
             //Nếu là broadcast thì gửi bằng UDP
-            if (request.getAction() == ACTION_BROADCAST)
-            {
-                
-                if (sendUDP(request, response) != 0) {
-                    // TODO ERROR
-                    continue;
-                }
-                
-                string valueBodyBroadcast = "Lists of PC name and IP address: \n";
-                for (const auto &x : pcNameIPMap){
-                    valueBodyBroadcast += x.first;
-                    valueBodyBroadcast += " - ";
-                    valueBodyBroadcast += x.second;
-                    valueBodyBroadcast += "\n";
-                }
-                response.putParam(kBody, valueBodyBroadcast);
+            if (request.getAction() != ACTION_BROADCAST) {
+                continue;
             }
-            else 
-            {
-                if (sendTCP(request, response) != 0) {
-                    // TODO ERROR
-                    continue;
-                }
+                
+            if (sendUDP(request, response) != 0) {
+                // TODO ERROR
+                continue;
             }
+            
+            string valueBodyBroadcast = "Lists of PC name and IP address: \n";
+            for (const auto &x : pcNameIPMap){
+                valueBodyBroadcast += x.first;
+                valueBodyBroadcast += " - ";
+                valueBodyBroadcast += x.second;
+                valueBodyBroadcast += "\n";
+            }
+            response.putParam(kBody, valueBodyBroadcast);
+           
             // Send mail response
             string mailStr; 
             response.toMailString(mailSubject, mailStr);
             
             // response.saveFiles();
 
+            CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
+            SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
+            SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass,
+			CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
             SMTPClient.SendMIME(mailFrom, {"Subject: " + mailSubject}, mailStr, response.getFiles());
+            SMTPClient.CleanupSession();
             
             // response.deleteFiles();'
 
             cout << "---------\nResponse: " << response << "\n-------------\n";
+            broadcasted = true;
             // Add to queue
             // responsesQueue.push();
         }   
 
         IMAPClient.CleanupSession();
 
+        if (broadcasted)
+            break;
+
         // TODO SLOW
         this_thread::sleep_for(4s);
     }    
-
-    SMTPClient.CleanupSession();
 }
 

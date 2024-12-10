@@ -125,11 +125,6 @@ int send(Request &request, Response &response) {
 void listenToInbox() {
     string str;
 
-    CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
-    SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
-    SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass,
-			CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
-
     // Receive mail
     while (true) {
         CIMAPClient IMAPClient([](const std::string& s){ cout << s << "\n"; return; });  
@@ -186,7 +181,12 @@ void listenToInbox() {
             cout << mailHeaders << " headers\n";
             cout << mailMessageId << " mid\n";
 
+            CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
+            SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
+            SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass, 
+                                CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
             SMTPClient.SendMIME(mailFrom, {"References: " + mailMessageId, "In-Reply-To: " + mailMessageId, "Subject: Re: " + mailSubject}, mailStr, response.getFiles(), toLower(response.getParam(kUseHtml)) == "true");
+            SMTPClient.CleanupSession();
             
             // response.deleteFiles();'
 
@@ -200,8 +200,6 @@ void listenToInbox() {
         // TODO SLOW
         this_thread::sleep_for(4s);
     }    
-
-    SMTPClient.CleanupSession();
 }
 
 int main() { 
@@ -214,8 +212,9 @@ int main() {
 
     // Create folder "files"
     CreateDirectoryA("files", NULL);
-
+    
     listenToInboxUDP();
+    listenToInbox();
     // Request request;
     // Response response;
 

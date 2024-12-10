@@ -14,13 +14,14 @@ PacketBuffer::PacketBuffer(SOCKET socket, bool readMode): socket(socket), readMo
 
         int received = 0;
         int iResult;
-        while ((iResult = recv(socket, recvbuf.data(), kBufferSize, 0)) > 0) {
+        while ((iResult = recv(socket, recvbuf.data(), kBufferSize, 0))) {
             if (iResult < 0) { 
                 std::cout << "DEBUG: recvall error: " <<  WSAGetLastError() << "\n";
                 // NOTIFY
                 throw std::runtime_error("Error in readMode");
                 break;
             }
+        
             buffer += std::string(recvbuf.c_str(), iResult);
             received += iResult;
         }
@@ -40,7 +41,7 @@ PacketBuffer::PacketBuffer(SOCKET socket, bool readMode, sockaddr_in *destAddres
 
         int received = 0;
         int iResult;
-        if ((iResult = recvfrom(socket, recvbuf.data(), kBufferSize, 0, (sockaddr*) destAddress, &destAddressSize)) > 0) {
+        if ((iResult = recvfrom(socket, recvbuf.data(), kBufferSize, 0, (sockaddr*) destAddress, &destAddressSize))) {
             if (iResult < 0) { 
                 std::cout << "DEBUG: UDP recvall error: " <<  WSAGetLastError() << "\n";
                 // NOTIFY
@@ -49,7 +50,9 @@ PacketBuffer::PacketBuffer(SOCKET socket, bool readMode, sockaddr_in *destAddres
             buffer += std::string(recvbuf.c_str(), iResult);
             received += iResult;
         }
-        std::cout << "DEBUG: received" << received << "bytes. Buffer: " << buffer << "\n";
+
+        // std::cout << "DEBUG: received" << received << " bytes. UDP: " << isUDP << ". Buffer: " << buffer.c_str() << "\n";
+        // std::cout << WSAGetLastError() << " error\n";
     }
 }
 
@@ -93,7 +96,7 @@ void PacketBuffer::flush() {
             } else {
                 sent += iResult;
             }
-            sleep(1);
+            // sleep(1);
         }
     } else {
         int sent = 0;
