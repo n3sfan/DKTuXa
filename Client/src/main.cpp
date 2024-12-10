@@ -27,7 +27,7 @@ using namespace std;
  * Protocol 2.
  */
 int send(Request &request, Response &response) {
-    if (request.getParam(kIPAttr) == "" || request.getParam(kSubAction) == "") {
+    if (request.getParam(kSubAction).empty() || (request.getParam(kIPAttr).empty() && request.getParam(kPcName).empty())){
         return 1;
     }
 
@@ -44,7 +44,16 @@ int send(Request &request, Response &response) {
     hints.ai_protocol = IPPROTO_TCP; 
 
     // Resolve the server address and port
-    string host = request.getParam(kIPAttr);
+    string host;
+    if (!request.getParam(kIPAttr).empty()){
+        host = request.getParam(kIPAttr);
+    }
+    else if (!request.getParam(kPcName).empty()){
+        auto pi = pcNameIPMap.find(request.getParam(kPcName));
+        if (pi != pcNameIPMap.end()){
+            host = pi->second;
+        }
+    }
     iResult = getaddrinfo(host.c_str(), DEFAULT_PORT, &hints, &result);
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
