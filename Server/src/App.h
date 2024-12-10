@@ -29,7 +29,7 @@ class App{
 
         std::string getInstalledAppsHTML();
 
-        std::string getRunningTaskbarAppsHTML();
+        std::string getRunningAppsHTML();
     private:        
         void scanDirectory(const std::wstring directory, std::vector<AppInfo>& appList); // done
 };
