@@ -54,12 +54,11 @@ bool Server::handleRestartSystem(Request& request, Response &response){
 
 bool Server::listRunningApps(Request& request, Response &response){
     App app;
-    std::vector<std::string> appList = app.getRunningTaskbarApps();
-    std::string appList_str = "Running Application: \n";
-    for (int i = 0; i < appList.size(); i++){
-        appList_str += std::to_string(i + 1) + ". " + appList[i] + "\n";
-    }
-    response.putParam(kBody, appList_str);
+    std::string appRunningListHTML = app.getRunningTaskbarAppsHTML();
+
+    // Trả về chuỗi HTML
+    response.putParam(kUseHtml, "true");
+    response.putParam(kBody, appRunningListHTML);
     return true;
 }
 
@@ -80,12 +79,12 @@ bool Server::closeApp(Request& request, Response& response){
 
 bool Server::listInstalledApps(Request& request, Response& response){
     App app;
-    std::vector<AppInfo> appList = app.getInstalledApps();
-    std::string appList_str = "Installed application: \n";
-    for (int i = 0; i < appList.size(); i++){
-        appList_str += std::to_string(i + 1) + ". " + appList[i].name + "\n";
-    }
-    response.putParam(kBody, appList_str);
+    std::string appListHTML = app.getInstalledAppsHTML();
+
+    // Trả về chuỗi HTML
+    response.putParam(kUseHtml, "true");
+    response.putParam(kBody, appListHTML);
+
     return true;
 }
 
@@ -190,7 +189,7 @@ bool Server::handleFile(Request& request, Response& response){
 }
 
 
-bool Server::listRunningService(Request& request, Response& response){
+bool Server::listServices(Request& request, Response& response){
     Service service;
     std::string list_service = service.listServices();
     response.putParam(kBody, list_service);
@@ -217,7 +216,7 @@ bool Server::handleService(Request& request, Response& response){
     string subAction = toLower(request.getParam(kSubAction));
     response.putParam(kUseHtml, "true"); 
     if (subAction == "listservice")
-        return listRunningService(request, response);
+        return listServices(request, response);
     else if (subAction == "startservice")
         return startService(request, response);
     else if (subAction == "stopservice")

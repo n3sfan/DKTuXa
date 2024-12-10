@@ -157,6 +157,69 @@ std::vector<AppInfo> App::getInstalledApps() {
     return appList;
 }
 
+std::string App::getInstalledAppsHTML() {
+    std::vector<AppInfo> apps = getInstalledApps();
+
+    std::ostringstream html;
+    html << "<!DOCTYPE html><html><head>";
+    html << "<style>"
+         << "table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }"
+         << "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }"
+         << "th { background-color: #f2f2f2; }"
+         << "tr:nth-child(even) { background-color: #f9f9f9; }"
+         << "tr:hover { background-color: #f1f1f1; }"
+         << "</style></head><body>";
+
+    html << "<h2 style=\"font-family: Arial, sans-serif; text-align: center;\">Installed Applications</h2>";
+    html << "<table>";
+    html << "<thead><tr><th>STT</th><th>Application Name</th><th>Path</th></tr></thead>";
+    html << "<tbody>";
+
+    for (size_t i = 0; i < apps.size(); ++i) {
+        html << "<tr>";
+        html << "<td>" << (i + 1) << "</td>";
+        html << "<td>" << apps[i].name << "</td>";
+        html << "<td style=\"color: #555;\">" << apps[i].fullpath << "</td>";
+        html << "</tr>";
+    }
+
+    html << "</tbody></table>";
+    html << "</body></html>";
+
+    return html.str();
+}
+
+std::string App::getRunningTaskbarAppsHTML() {
+    std::vector<std::string> runningApps = getRunningTaskbarApps();
+
+    std::ostringstream html;
+    html << "<!DOCTYPE html><html><head>";
+    html << "<style>"
+         << "table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }"
+         << "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }"
+         << "th { background-color: #f2f2f2; }"
+         << "tr:nth-child(even) { background-color: #f9f9f9; }"
+         << "tr:hover { background-color: #f1f1f1; }"
+         << "</style></head><body>";
+
+    html << "<h2 style=\"font-family: Arial, sans-serif; text-align: center;\">Running Applications</h2>";
+    html << "<table>";
+    html << "<thead><tr><th>STT</th><th>Application Name</th></thead>";
+    html << "<tbody>";
+
+    for (size_t i = 0; i < runningApps.size(); ++i) {
+        html << "<tr>";
+        html << "<td>" << (i + 1) << "</td>";
+        html << "<td>" << runningApps[i] << "</td>";
+        html << "</tr>";
+    }
+
+    html << "</tbody></table>";
+    html << "</body></html>";
+
+    return html.str();
+}
+
 bool App::runApplication(const std::string &executablePath){
     HINSTANCE result = ShellExecuteA(NULL, "open", executablePath.c_str(), NULL, NULL, SW_SHOWNORMAL);
     return reinterpret_cast<intptr_t>(result) > 32;

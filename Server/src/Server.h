@@ -21,7 +21,7 @@ class Server {
         bool handleGetFile(Request& request, Response& response);
         bool handleDeleteFile(Request& request, Response& response);
         bool handleFile(Request& request, Response& response);
-        bool listRunningService(Request& request, Response& response);
+        bool listServices(Request& request, Response& response);
         bool startService(Request& request, Response& response);
         bool stopService(Request& request, Response& response);
         bool handleService(Request& request, Response& response);

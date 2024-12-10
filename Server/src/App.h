@@ -5,6 +5,7 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <sstream>
 #include <algorithm>
 #include <Windows.h>
 #include <shlobj.h>
@@ -24,6 +25,10 @@ class App{
 
         bool runApplication(const std::string& executablePath); // done
         std::vector<AppInfo> getInstalledApps(); // done
+
+        std::string getInstalledAppsHTML();
+
+        std::string getRunningTaskbarAppsHTML();
     private:        
         void scanDirectory(const std::wstring directory, std::vector<AppInfo>& appList); // done
 };

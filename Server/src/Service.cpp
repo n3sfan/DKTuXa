@@ -46,35 +46,47 @@ std::string Service::listServices() {
             nullptr)) {
 
         // Bắt đầu tạo bảng HTML
-        result << "<style>"
-               << "table { font-family: monospace; border-collapse: collapse; width: 100%; }"
-               << "th, td { border: 10px solid black; padding: 8px; text-align: left; }"
-               << "th { background-color: #f2f2f2; }"
-               << "</style>";
-        result << "<table>";
-        result << "<tr><th>Service Name</th><th>Display Name</th><th>Status</th></tr>";
+        // Bắt đầu tạo bảng HTML
+        result << "<table width=\"100%\" style=\"font-family: Arial, sans-serif; border-collapse: collapse; background-color: #f9f9f9; text-align: center;\">";
+
+        // Header của bảng
+        result << "<tr style=\"background-color: #f2f2f2;\">";
+        result << "<th style=\"border: 1px solid #dddddd; padding: 10px; font-size: 16px; color: #333333;\">Service Name</th>";
+        result << "<th style=\"border: 1px solid #dddddd; padding: 10px; font-size: 16px; color: #333333;\">Display Name</th>";
+        result << "<th style=\"border: 1px solid #dddddd; padding: 10px; font-size: 16px; color: #333333;\">Status</th>";
+        result << "</tr>";
 
         // Duyệt qua danh sách dịch vụ
         for (DWORD i = 0; i < serviceCount; ++i) {
             ENUM_SERVICE_STATUS_PROCESS& service = services[i];
 
             // Chuyển đổi tên dịch vụ và tên hiển thị
-#ifdef UNICODE
+        #ifdef UNICODE
             std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
             std::string serviceName = converter.to_bytes(service.lpServiceName);
             std::string displayName = converter.to_bytes(service.lpDisplayName);
-#else
+        #else
             std::string serviceName = service.lpServiceName;
             std::string displayName = service.lpDisplayName;
-#endif
+        #endif
 
             // Trạng thái dịch vụ
             std::string status = (service.ServiceStatusProcess.dwCurrentState == SERVICE_RUNNING) ? "Running" : "Stopped";
 
+            // Màu trạng thái
+            std::string statusColor = (status == "Running") ? "#28a745" : "#dc3545";
+
             // Thêm hàng vào bảng
-            result << "<tr><td>" << serviceName << "</td><td>" << displayName << "</td><td>" << status << "</td></tr>";
+            result << "<tr>";
+            result << "<td style=\"border: 1px solid #dddddd; padding: 10px; font-size: 14px; color: #333333;\">" << serviceName << "</td>";
+            result << "<td style=\"border: 1px solid #dddddd; padding: 10px; font-size: 14px; color: #333333;\">" << displayName << "</td>";
+            result << "<td style=\"border: 1px solid #dddddd; padding: 10px; font-size: 14px; font-weight: bold; color: " << statusColor << ";\">" << status << "</td>";
+            result << "</tr>";
         }
+
+        // Đóng bảng
         result << "</table>";
+
     } else {
         result << "<p>Error: Cannot list services. Error code: " << GetLastError() << "</p>";
     }
