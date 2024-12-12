@@ -55,12 +55,9 @@ bool Server::handleRestartSystem(Request& request, Response &response){
 bool Server::listRunningApps(Request& request, Response &response){
     try{
         App app;
-        auto appList = app.getRunningTaskBarAppsbyPID();
-        std::string appList_str = "Running Application: \n";
-        for (int i = 0; i < appList.size(); i++){
-            appList_str += std::to_string(i + 1) + ". " + appList[i].first + " - PID: " + std::to_string(appList[i].second) + "\n";
-        }
-        response.putParam(kBody, appList_str);
+        string appRunningList = app.getRunningAppsHTML();
+        response.putParam(kUseHtml, "true");
+        response.putParam(kBody, appRunningList);
         return true;
     } catch(const std::exception& e){
         response.putParam(kStatus, "Error");
@@ -133,12 +130,9 @@ bool Server::closeApp(Request& request, Response& response){
 bool Server::listInstalledApps(Request& request, Response& response){
     try{
         App app;
-        std::vector<AppInfo> appList = app.getInstalledApps();
-        std::string appList_str = "Installed Applications.\n";
-        for (int i = 0; i < appList.size(); i++){
-            appList_str += std::to_string(i + 1) + ". " + appList[i].name + "\n";
-        }
-        response.putParam(kBody, appList_str);
+        string appList = app.getInstalledAppsHTML();
+        response.putParam(kUseHtml, "true");
+        response.putParam(kBody, appList);
         return true;
     } catch(const std::exception& e){
         response.putParam(kStatus, "Error");

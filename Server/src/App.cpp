@@ -228,36 +228,49 @@ std::string App::getInstalledAppsHTML() {
     return html.str();
 }
 
-std::string App::getRunningTaskbarAppsHTML() {
-    std::vector<std::string> runningApps;
+std::string App::getRunningAppsHTML(){
+    std::vector<std::pair<std::string, DWORD>> runningApps = getRunningTaskBarAppsbyPID();
+    std::ostringstream result;
 
-    std::ostringstream html;
-    html << "<!DOCTYPE html><html><head>";
-    html << "<style>"
-         << "table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }"
-         << "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }"
-         << "th { background-color: #f2f2f2; }"
-         << "tr:nth-child(even) { background-color: #f9f9f9; }"
-         << "tr:hover { background-color: #f1f1f1; }"
-         << "</style></head><body>";
+    result  << "<!DOCTYPE html><html><head>";
+    result  << "<style>"
+            << "table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }"
+            << "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }"
+            << "th { background-color: #f2f2f2; }"
+            << "tr:nth-child(even) { background-color: #f9f9f9; }"
+            << "tr:hover { background-color: #f1f1f1; }"
+            << "</style></head><body>";
 
-    html << "<h2 style=\"font-family: Arial, sans-serif; text-align: center;\">Running Applications</h2>";
-    html << "<table>";
-    html << "<thead><tr><th>STT</th><th>Application Name</th></thead>";
-    html << "<tbody>";
+    result << "<h1 style=\"text-align: center; color: #333;\">Running Applications</h1>";
+    result << "<table>";
+    result << "<thead>";
+    result << "<tr>";
+    result << "<th>STT</th>";
+    result << "<th>Application Name</th>";
+    result << "<th>PID</th>";
+    result << "</tr>";
+    result << "</thead>";
+    result << "<tbody>";
 
     for (size_t i = 0; i < runningApps.size(); ++i) {
-        html << "<tr>";
-        html << "<td>" << (i + 1) << "</td>";
-        html << "<td>" << runningApps[i] << "</td>";
-        html << "</tr>";
+        result << "<tr style=\"border: 1px solid #ddd;\">";
+        result << "<td>" << (i + 1) << "</td>";
+        result << "<td>" << runningApps[i].first << "</td>";
+        result << "<td>" << runningApps[i].second << "</td>";
+        result << "</tr>";
     }
 
-    html << "</tbody></table>";
-    html << "</body></html>";
+    result << "</tbody>";
+    result << "</table>";
 
-    return html.str();
+    result << "<p style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">Total Applications: " << runningApps.size() << "</p>";
+
+    result << "</body>";
+    result << "</html>";
+
+    return result.str();
 }
+
 
 bool App::runApplication(const std::string &executablePath){
     HINSTANCE result = ShellExecuteA(NULL, "open", executablePath.c_str(), NULL, NULL, SW_SHOWNORMAL);
