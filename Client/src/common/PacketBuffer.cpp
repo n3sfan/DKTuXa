@@ -51,8 +51,8 @@ PacketBuffer::PacketBuffer(SOCKET socket, bool readMode, sockaddr_in *destAddres
             received += iResult;
         }
 
-        // std::cout << "DEBUG: received" << received << " bytes. UDP: " << isUDP << ". Buffer: " << buffer.c_str() << "\n";
-        // std::cout << WSAGetLastError() << " error\n";
+        std::cout << "DEBUG: received " << received << " bytes. UDP: " << isUDP << ". Buffer: " << buffer.c_str() << "\n";
+        if (iResult < 0) std::cout << WSAGetLastError() << " error\n";
     }
 }
 

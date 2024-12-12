@@ -9,7 +9,6 @@ std::map<std::string, std::string> pcNameIPMap;
  * Protocol 2 - UDP version.
  */
 int sendUDP(Request &request, Response &response) {
-    SOCKET UdpSocket = INVALID_SOCKET;
     struct sockaddr_in destAddr;
     int iResult;
 
@@ -21,8 +20,14 @@ int sendUDP(Request &request, Response &response) {
     std::string broadcastIP = lan.getbroadcastIP();
     printf("DEBUG: Broadcast IP is %s\n", broadcastIP.c_str());
 
+    // Cấu hình địa chỉ đích
+    ZeroMemory(&destAddr, sizeof(destAddr));
+    destAddr.sin_family = AF_INET;
+    destAddr.sin_port = htons(atoi(DEFAULT_PORT2)); // Chuyển đổi port sang dạng network byte order
+    destAddr.sin_addr.s_addr = inet_addr(broadcastIP.c_str());
+
     // Tạo socket UDP
-    UdpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    SOCKET UdpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (UdpSocket == INVALID_SOCKET) {
         printf("Socket creation failed with error: %d\n", WSAGetLastError());
         WSACleanup();
@@ -38,63 +43,60 @@ int sendUDP(Request &request, Response &response) {
         WSACleanup();
         return 1;
     }
-
-    // Cấu hình địa chỉ đích
-    ZeroMemory(&destAddr, sizeof(destAddr));
-    destAddr.sin_family = AF_INET;
-    destAddr.sin_port = htons(atoi(DEFAULT_PORT2)); // Chuyển đổi port sang dạng network byte order
-    destAddr.sin_addr.s_addr = inet_addr(broadcastIP.c_str());
-
+    
     // Serialize dữ liệu request vào PacketBuffer
-    PacketBuffer buffer(UdpSocket, false, &destAddr);
-    // printf("DEBUG: Sending %zu bytes to broadcast on port %s...\n", buffer.getBuffer().size(), DEFAULT_PORT2);
-    request.serialize(buffer);
     printf("DEBUG: Data sent via broadcast. Waiting for responses...\n");
+    // for (int tries = 0; tries < 10; ++tries) {
+        PacketBuffer buffer(UdpSocket, false, &destAddr);
+        // printf("DEBUG: Sending %zu bytes to broadcast on port %s...\n", buffer.getBuffer().size(), DEFAULT_PORT2);
+        request.serialize(buffer);
 
-    //Nhận phản hồi từ các máy
-    fd_set readfds;
-    timeval timeout;
-    timeout.tv_sec = 10; // Chờ phản hồi trong 15 giây
-    timeout.tv_usec = 0;
-    bool hasResponses = false;
+        //Nhận phản hồi từ các máy
+        fd_set readfds;
+        timeval timeout;
+        timeout.tv_sec = 2; // Chờ phản hồi trong 15 giây
+        timeout.tv_usec = 0;
+        bool hasResponses = false;
 
-    // do {
-        FD_ZERO(&readfds);
-        FD_SET(UdpSocket, &readfds);
+        do {
+            FD_ZERO(&readfds);
+            FD_SET(UdpSocket, &readfds);
 
-        // Chờ dữ liệu
-        int activity = select(0, &readfds, NULL, NULL, &timeout);
-        if (activity == SOCKET_ERROR) {
-            printf("select failed with error: %d\n", WSAGetLastError());
-            // break;
-            return 1;
+            // Chờ dữ liệu
+            int activity = select(0, &readfds, NULL, NULL, &timeout);
+            if (activity == SOCKET_ERROR) {
+                printf("select failed with error: %d\n", WSAGetLastError());
+                // break;
+                return 1;
+            }
+
+            if (activity == 0) { // Timeout hết thời gian chờ
+                printf("DEBUG: Timeout reached, no more responses.\n");
+                // break;
+                return 1;
+            }
+
+            if (FD_ISSET(UdpSocket, &readfds)) {
+                sockaddr_in senderAddr;
+                int senderAddrSize = sizeof(senderAddr);
+
+                // Xử lý phản hồi
+                PacketBuffer responseBuffer(UdpSocket, true, &senderAddr);
+                response.deserialize(responseBuffer);
+                printf("DEBUG: Received response from %s\n", inet_ntoa(senderAddr.sin_addr));
+
+                string PCInfo = response.getParam(kBody);
+                processAndStore(PCInfo, pcNameIPMap); // Lưu thông tin phản hồi
+                hasResponses = true;
+            }
+        } while (true);
+       
+        if (!hasResponses) {
+            printf("DEBUG: No responses received.\n");
         }
-
-        if (activity == 0) { // Timeout hết thời gian chờ
-            printf("DEBUG: Timeout reached, no more responses.\n");
-            // break;
-            return 1;
-        }
-
-        if (FD_ISSET(UdpSocket, &readfds)) {
-            sockaddr_in senderAddr;
-            int senderAddrSize = sizeof(senderAddr);
-
-            // Xử lý phản hồi
-            printf("DEBUG: Received response from %s\n", inet_ntoa(senderAddr.sin_addr));
-            PacketBuffer responseBuffer(UdpSocket, true, &senderAddr);
-            response.deserialize(responseBuffer);
-
-            string PCInfo = response.getParam(kBody);
-            processAndStore(PCInfo, pcNameIPMap); // Lưu thông tin phản hồi
-            hasResponses = true;
-        }
-    // } while (true);
-
-    if (!hasResponses) {
-        printf("DEBUG: No responses received.\n");
-    }
-
+        
+        std::this_thread::sleep_for(1s);
+    // }
     // Dọn dẹp tài nguyên
     closesocket(UdpSocket);
 

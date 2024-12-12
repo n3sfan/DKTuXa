@@ -229,7 +229,7 @@ std::string App::getInstalledAppsHTML() {
 }
 
 std::string App::getRunningTaskbarAppsHTML() {
-    std::vector<std::string> runningApps = getRunningTaskbarApps();
+    std::vector<std::string> runningApps;
 
     std::ostringstream html;
     html << "<!DOCTYPE html><html><head>";

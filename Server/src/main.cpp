@@ -6,6 +6,7 @@
 #include <atomic>
 #include <cstring>
 #include <future>
+#include <cstdlib>
 
 #include <winsock2.h>
 #include <windows.h>
@@ -16,13 +17,13 @@
 #include "common/Request.h"
 #include "common/Utils.h"
 #include "common/FileUpDownloader.h"
+#include "UDPServer.h"
 
 #define DEFAULT_PORT "5555"
 #define DEFAULT_PORT2 "5556"
 
 SOCKET ListenSocket = INVALID_SOCKET;
 std::atomic_bool stopServer;
-std::atomic_bool serverFinished;
 
 void closeClientSocket(SOCKET ClientSocket) {
     int iResult = shutdown(ClientSocket, SD_SEND);
@@ -91,8 +92,6 @@ int server() {
     std::cout << "Server started!\n";
 
     Server server;
-    std::unique_ptr<char[]> recvbuf(new char[8192]());
-    const int recvbuflen = 8192;
 
     // Server loop
     while (!stopServer) {
@@ -210,6 +209,15 @@ int serverUDP() {
 
     freeaddrinfo(result);
 
+    // Set the socket to be asynchronous
+    // if (WSAAsyncSelect(ListenSocket, hwnd, WM_WSAASYNC, FD_READ | FD_WRITE) == SOCKET_ERROR) {
+    //     std::cerr << "WSAAsyncSelect failed. Error: " << WSAGetLastError() << std::endl;
+    //     DestroyWindow(hwnd);
+    //     closesocket(ListenSocket);
+    //     WSACleanup();
+    //     return 1;
+    // }
+
     // Server Side
     std::cout << "Server started!\n";
 
@@ -217,8 +225,9 @@ int serverUDP() {
     sockaddr_in clientAddr;
     int clientAddrLen = sizeof(clientAddr);
 
-    // Server loop
-    while (!stopServer) {
+     // Server loop
+    // while (!stopServer) {
+    for (int tries = 0; tries < 5; ++tries) {
         // Xử lý request
         PacketBuffer buffer(ListenSocket, true, &clientAddr);
         // buffer.getBuffer() = std::string(recvbuf.get(), iResult); // Chuyển đổi buffer thành chuỗi
@@ -237,7 +246,8 @@ int serverUDP() {
         std::cout << "DEBUG: Sent response to " << inet_ntoa(clientAddr.sin_addr) << "\n";
 
         closesocket(ResponseSocket);
-        break;
+        int r = rand() % 1000;
+        std::this_thread::sleep_for(std::chrono::milliseconds(r));
     }
 
     closesocket(ListenSocket);
@@ -262,6 +272,8 @@ int serverUDP() {
 // }
 
 int main() {
+    srand(time(0));
+
     WSAData wsaData;
     // Initialize Winsock
     int iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
