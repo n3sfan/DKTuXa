@@ -227,15 +227,15 @@ int serverUDP() {
 
      // Server loop
     // while (!stopServer) {
+    // Xử lý request
+    PacketBuffer buffer(ListenSocket, true, &clientAddr);
+    // buffer.getBuffer() = std::string(recvbuf.get(), iResult); // Chuyển đổi buffer thành chuỗi
+    Request request;
+    Response response;
+    request.deserialize(buffer);
+    server.processRequest(request, response);
+   
     for (int tries = 0; tries < 5; ++tries) {
-        // Xử lý request
-        PacketBuffer buffer(ListenSocket, true, &clientAddr);
-        // buffer.getBuffer() = std::string(recvbuf.get(), iResult); // Chuyển đổi buffer thành chuỗi
-        Request request;
-        Response response;
-        request.deserialize(buffer);
-        server.processRequest(request, response);
-
         // std::cout << "DEBUG: Received data from " << inet_ntoa(clientAddr.sin_addr) << "\n";
 
         // Gửi phản hồi lại client qua UDP

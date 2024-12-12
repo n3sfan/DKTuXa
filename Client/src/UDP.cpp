@@ -73,7 +73,7 @@ int sendUDP(Request &request, Response &response) {
             if (activity == 0) { // Timeout hết thời gian chờ
                 printf("DEBUG: Timeout reached, no more responses.\n");
                 // break;
-                return 1;
+                return 0;
             }
 
             if (FD_ISSET(UdpSocket, &readfds)) {
@@ -82,12 +82,14 @@ int sendUDP(Request &request, Response &response) {
 
                 // Xử lý phản hồi
                 PacketBuffer responseBuffer(UdpSocket, true, &senderAddr);
-                response.deserialize(responseBuffer);
-                printf("DEBUG: Received response from %s\n", inet_ntoa(senderAddr.sin_addr));
+                if (responseBuffer.getBuffer().size() > 0) {
+                    response.deserialize(responseBuffer);
 
-                string PCInfo = response.getParam(kBody);
-                processAndStore(PCInfo, pcNameIPMap); // Lưu thông tin phản hồi
-                hasResponses = true;
+                    string PCInfo = response.getParam(kBody);
+                    processAndStore(PCInfo, pcNameIPMap); // Lưu thông tin phản hồi
+                    hasResponses = true;
+                }
+                printf("DEBUG: Received response from %s\n", inet_ntoa(senderAddr.sin_addr));
             }
         } while (true);
        
