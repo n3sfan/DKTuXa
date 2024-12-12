@@ -2,10 +2,10 @@
 
 void processAndStore(const std::string& PCname_ip, std::map<std::string, std::string>& account_table) {
     // Tìm vị trí của dấu '-' để tách PC name và IP
-    size_t delimiter_pos = PCname_ip.find('-');
+    size_t delimiter_pos = PCname_ip.find_last_of('-');
     if (delimiter_pos == std::string::npos) {
         // Nếu không tìm thấy dấu '-', thông báo lỗi và thoát
-        std::cerr << "Invalid format. Expected 'PCname-ip' format." << std::endl;
+        std::cerr << "Invalid format. Expected 'PC name-ip' format." << std::endl;
         return;
     }
 

@@ -77,7 +77,7 @@ bool Server::closeApp(Request& request, Response& response){
             throw std::invalid_argument("Invalid PID format.");
         }
         // Nếu có tên cửa sổ kèm theo nữa.
-        std::string WindowName = request.getParam("WindowName");
+        std::string WindowName = request.getParam("Window Name");
         std::vector<std::pair<std::string, DWORD>> matchingApps;
         for (const auto& appInfo : appList){
             if (appInfo.second == pid){
@@ -93,7 +93,7 @@ bool Server::closeApp(Request& request, Response& response){
                                        return app.first == WindowName;
                                    });
             if (it == matchingApps.end()) {
-                throw std::out_of_range("No matching window found for PID and WindowName.");
+                throw std::out_of_range("No matching window found for PID and Window Name.");
             }
 
             bool success = app.closeApplicationByPIDandName(pid, WindowName);
@@ -107,7 +107,7 @@ bool Server::closeApp(Request& request, Response& response){
                 conflictMsg += std::to_string(i + 1) + ". " + matchingApps[i].first + "\n";
             }
             response.putParam(kStatus, "Conflict");
-            response.putParam(kBody, conflictMsg + "Specify the window to close by WindowName.");
+            response.putParam(kBody, conflictMsg + "Specify the window to close by Window Name.");
             return false;
         }
         bool success = app.closeApplication(pid);
@@ -147,13 +147,13 @@ bool Server::runApp(Request& request, Response &response){
         std::vector<AppInfo> appList = app.getInstalledApps();
         int appIndex = 0;
         try{
-            appIndex = std::stoi(request.getParam("AppIndex"));
+            appIndex = std::stoi(request.getParam("App Index"));
         } catch(const std::exception& e){
-            throw std::invalid_argument("Invalid AppIndex format");
+            throw std::invalid_argument("Invalid App Index format");
         }
 
         if (appIndex <= 0 || appIndex > appList.size()){
-            throw std::out_of_range("AppIndex out of range");
+            throw std::out_of_range("App Index out of range");
         }
         std::string appPath = appList[appIndex - 1].fullpath;
         bool success = app.runApplication(appPath);
@@ -175,16 +175,16 @@ bool Server::runApp(Request& request, Response &response){
 
 bool Server::handleApp(Request& request, Response& response){
     std::string subAction = toLower(request.getParam(kSubAction));
-    if (subAction == "listrunningapps")
+    if (subAction == "list running apps")
         return listRunningApps(request, response);
-    else if (subAction == "closeapp")
+    else if (subAction == "close app")
         return closeApp(request, response);
-    else if (subAction == "listinstalledapps")
+    else if (subAction == "list installed apps")
         return listInstalledApps(request, response);
-    else if (subAction == "runapp")
+    else if (subAction == "run app")
         return runApp(request, response);
     else{
-        response.putParam(kStatus, "Invalid subaction");
+        response.putParam(kStatus, "Invalid sub action");
         return false;
     }
 }
@@ -245,14 +245,14 @@ bool Server::handleDeleteFile(Request& request, Response& response){
 
 bool Server::handleFile(Request& request, Response& response){
     string subAction = toLower(request.getParam(kSubAction));
-    if (subAction == "listfile")
+    if (subAction == "list file")
         return handleGetListFile(request, response);
-    else if (subAction == "getfile")
+    else if (subAction == "get file")
         return handleGetFile(request, response);
-    else if (subAction == "deletefile")
+    else if (subAction == "delete file")
         return handleDeleteFile(request, response);
     else{
-        response.putParam(kStatus, "Invalid subaction");
+        response.putParam(kStatus, "Invalid sub action");
         return false;
     }
     return true;
@@ -285,14 +285,14 @@ bool Server::stopService(Request& request, Response& response){
 bool Server::handleService(Request& request, Response& response){
     string subAction = toLower(request.getParam(kSubAction));
     response.putParam(kUseHtml, "true"); 
-    if (subAction == "listservice")
+    if (subAction == "list service")
         return listServices(request, response);
-    else if (subAction == "startservice")
+    else if (subAction == "start service")
         return startService(request, response);
-    else if (subAction == "stopservice")
+    else if (subAction == "stop service")
         return stopService(request, response);
     else{
-        response.putParam(kStatus, "Invalid subaction");
+        response.putParam(kStatus, "Invalid sub action");
         return false;
     }
     return true;
@@ -358,7 +358,7 @@ bool Server::processRequest(Request& request, Response &response) {
 
 //Duc
 bool Server::screenshot(Request& request, Response &response){
-    std::string subaction = request.getParam(kSubAction);
+    std::string subaction = toLower(request.getParam(kSubAction));
     response.putParam(kStatus, "Ok");
 
     Screenshot screenshot;
@@ -403,10 +403,9 @@ bool Server::getVideoByWebcam(Request& request, Response &response) {
 bool Server::PCnameandIP(Request& request, Response& response) {
     // Broadcast broadcast;
     // Lấy subAction từ request
-    std::string subAction = request.getParam(kSubAction);
-
+    std::string subAction = toLower(request.getParam(kSubAction));
     // Xử lý subAction "listpcname-ip"
-    if (subAction == "listpcname-ip") {
+    if (subAction == "list pc name-ip") {
         std::string ip = getIPAddress();
         std::string pcname = getPCName();
 
@@ -431,6 +430,6 @@ bool Server::PCnameandIP(Request& request, Response& response) {
     }
     // Xử lý subAction không xác định
     response.putParam(kStatus, "Error");
-    response.putParam(kBody, "Unknown subAction: " + subAction);
+    response.putParam(kBody, "Unknown Sub Action: " + subAction);
     return false;
 }

@@ -115,20 +115,37 @@ void Request::toMailString(string &subject, string &body) const {
     body = "";
     
     for (const pair<string, string>& pr : params) {
-        if (pr.first == kPassWord){
-            continue; // Chặn trường Password được gửi lại
-        }
-        if (pr.first[0] == '_') {
-            continue; // Skip internal params
-        }
+        // if (pr.first == kPassWord){
+        //     continue; // Chặn trường Password được gửi lại
+        // }
+        // if (pr.first[0] == '_') {
+        //     continue; // Skip internal params
+        // }
         
-        body += pr.first;
-        body += ": ";
-        if (pr.first == kBody) {
+        // body += pr.first;
+        // body += ": ";
+        // if (pr.first == kBody) {
+        //     body += "\n";
+        // }
+        // body += pr.second;
+        // body += "\r\n";
+        if (pr.first == kBody){
+            body += pr.first;
+            body += ": ";
             body += "\n";
+            body += pr.second;
+            body += "\r\n";
         }
-        body += pr.second;
-        body += "\r\n";
+        if (pr.first == kStatus){
+            body += pr.first;
+            body += ": ";
+            body += pr.second;
+            body += "\r\n";
+        }
+        // Cho hien thi kBody va kStatus
+        else{
+            continue;
+        }
     }
 }
 

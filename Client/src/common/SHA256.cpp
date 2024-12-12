@@ -147,8 +147,8 @@ std::string SHA256::toString(const std::array<uint8_t, 32>& digest){
 }
 
 std::unordered_map<std::string, std::string> passWordHashes = {
-    {"thinhthangduchuy", "6cd566af953cdf7e505596b4ddba89de5e721576e4b66b47b0b78b4b86735e30"},
-    {"huythangducthinh", "52c64df219861b85fa3ab0f80fb3b78d2bffe5640c1abbba794701af58958b3c"}
+    {"MMT2024", "6e22ee10934e7f45e71065829623273d4bd69e9c5492803661c9328b15cba1d9"},
+    {"mmt2024", "3882e6b8baac7c056fed43a87528eb14dd6c36dc0c621c8d3fe58263d7fa0331"}
 };
 
 std::string getHashForPassWord(const std::string& password){

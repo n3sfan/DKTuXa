@@ -9,7 +9,7 @@
 #include "SHA256.h"
 
 const std::string kIPAttr = "IP";
-const std::string kSubAction = "Subaction";
+const std::string kSubAction = "Sub Action";
 const std::string kUseHtml = "_UseHtml";
 
 const std::string kStatus = "Status";
