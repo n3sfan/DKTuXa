@@ -30,6 +30,8 @@ class App{
         std::string getInstalledAppsHTML();
 
         std::string getRunningAppsHTML();
+
+        std::string conflictApps(std::vector<std::pair<std::string, DWORD>> matchingApps, int pid);
     private:        
         void scanDirectory(const std::wstring directory, std::vector<AppInfo>& appList); // done
 };

@@ -30,5 +30,5 @@ int setupSocket(SOCKET &SendSocket, struct addrinfo *&result, const std::string 
 int sendUDP(Request &request, Response &response);
 int sendUDPBroadcast(Request &request, Response &response, bool &isBroadcast, std::map<std::string, std::string> &pcNameIPMap);
 void listenToInboxUDP();
-
+std::string pcNameIPHTML(std::map<std::string, std::string> pcNameIPMap);
 #endif

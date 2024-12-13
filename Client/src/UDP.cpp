@@ -267,15 +267,20 @@ void listenToInboxUDP() {
                 continue;
             }
             
-            string valueBodyBroadcast = "Lists of PC name and IP address: \n";
-            for (const auto &x : pcNameIPMap){
-                valueBodyBroadcast += x.first;
-                valueBodyBroadcast += " - ";
-                valueBodyBroadcast += x.second;
-                valueBodyBroadcast += "\n";
-            }
+            // string valueBodyBroadcast = "Lists of PC name and IP address: \n";
+            // for (const auto &x : pcNameIPMap){
+            //     valueBodyBroadcast += x.first;
+            //     valueBodyBroadcast += " - ";
+            //     valueBodyBroadcast += x.second;
+            //     valueBodyBroadcast += "\n";
+            // }
+            // response.putParam(kBody, valueBodyBroadcast);
+
+            // List PC Name and IP Address
+            std::string valueBodyBroadcast = pcNameIPHTML(pcNameIPMap);
+            response.putParam(kUseHtml, "true");
             response.putParam(kBody, valueBodyBroadcast);
-           
+
             // Send mail response
             string mailStr; 
             response.toMailString(mailSubject, mailStr);
@@ -285,13 +290,13 @@ void listenToInboxUDP() {
             CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
             SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
             SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass,
-			CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
-            SMTPClient.SendMIME(mailFrom, {"Subject: " + mailSubject}, mailStr, response.getFiles());
+			                    CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
+            SMTPClient.SendMIME(mailFrom, {"References: " + mailMessageId, "In-Reply-To: " + mailMessageId, "Subject: Re: " + mailSubject}, mailStr, response.getFiles(), toLower(response.getParam(kUseHtml)) == "true");
             SMTPClient.CleanupSession();
             
             // response.deleteFiles();'
 
-            cout << "---------\nResponse: " << response << "\n-------------\n";
+            // cout << "---------\nResponse: " << response << "\n-------------\n";
             broadcasted = true;
             // Add to queue
             // responsesQueue.push();
@@ -307,3 +312,32 @@ void listenToInboxUDP() {
     }    
 }
 
+std::string pcNameIPHTML(std::map<std::string, std::string> pcNameIPMap){
+    std::string pcNameIPHTML = "<!DOCTYPE html><html><head>";
+    pcNameIPHTML += "<style>"
+                    "table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }"
+                    "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }"
+                    "th { background-color: #f2f2f2; }"
+                    "tr:nth-child(even) { background-color: #f9f9f9; }"
+                    "tr:hover { background-color: #f1f1f1; }"
+                    "</style></head><body>";
+
+    pcNameIPHTML += "<h1 style=\"text-align: center; color: #333;\">PC Name and IP Address</h1>";
+    pcNameIPHTML += "<table>";
+    pcNameIPHTML += "<thead><tr><th>STT</th><th>PC Name</th><th>IP Address</th></tr></thead><tbody>";
+
+    int index = 1;
+    for (const auto& pc : pcNameIPMap) {
+        pcNameIPHTML += "<tr>";
+        pcNameIPHTML += "<td>" + std::to_string(index++) + "</td>";
+        pcNameIPHTML += "<td>" + pc.first + "</td>";
+        pcNameIPHTML += "<td>" + pc.second + "</td>";
+        pcNameIPHTML += "</tr>";
+    }
+
+    pcNameIPHTML += "</tbody></table>";
+    pcNameIPHTML += "<p style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">Total PCs: " + std::to_string(pcNameIPMap.size()) + "</p>";
+    pcNameIPHTML += "</body></html>";
+
+    return pcNameIPHTML;
+}

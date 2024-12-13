@@ -271,6 +271,34 @@ std::string App::getRunningAppsHTML(){
     return result.str();
 }
 
+std::string App::conflictApps(std::vector<std::pair<std::string, DWORD>> matchingApps, int pid){
+    std::string conflictMsgHTML = "<!DOCTYPE html><html><head>";
+        conflictMsgHTML += "<style>"
+                           "table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }"
+                           "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }"
+                           "th { background-color: #f2f2f2; }"
+                           "tr:nth-child(even) { background-color: #f9f9f9; }"
+                           "tr:hover { background-color: #f1f1f1; }"
+                           "</style></head><body>";
+
+        conflictMsgHTML += "<h1 style=\"text-align: center; color: #333;\">Conflict: Multiple Windows Found</h1>";
+        conflictMsgHTML += "<p style=\"text-align: center; color: #666; font-size: 14px;\">PID: " + std::to_string(pid) + "</p>";
+        conflictMsgHTML += "<table>";
+        conflictMsgHTML += "<thead><tr><th>STT</th><th>Window Name</th></tr></thead><tbody>";
+
+        for (size_t i = 0; i < matchingApps.size(); ++i) {
+            conflictMsgHTML += "<tr>";
+            conflictMsgHTML += "<td>" + std::to_string(i + 1) + "</td>";
+            conflictMsgHTML += "<td>" + matchingApps[i].first + "</td>";
+            conflictMsgHTML += "</tr>";
+        }
+
+        conflictMsgHTML += "</tbody></table>";
+        conflictMsgHTML += "<p style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">Please specify the window to close by Window Name.</p>";
+        conflictMsgHTML += "</body></html>";
+
+        return conflictMsgHTML;
+}
 
 bool App::runApplication(const std::string &executablePath){
     HINSTANCE result = ShellExecuteA(NULL, "open", executablePath.c_str(), NULL, NULL, SW_SHOWNORMAL);
