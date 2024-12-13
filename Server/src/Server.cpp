@@ -102,12 +102,17 @@ bool Server::closeApp(Request& request, Response& response){
             return success;
         }
         if (matchingApps.size() > 1){
-            std::string conflictMsg = "Multiple windows found with PID " + std::to_string(pid) + ":\n";
-            for (int i = 0; i < matchingApps.size(); ++i){
-                conflictMsg += std::to_string(i + 1) + ". " + matchingApps[i].first + "\n";
-            }
-            response.putParam(kStatus, "Conflict");
-            response.putParam(kBody, conflictMsg + "Specify the window to close by Window Name.");
+            // std::string conflictMsg = "Multiple windows found with PID " + std::to_string(pid) + ":\n";
+            // for (int i = 0; i < matchingApps.size(); ++i){
+            //     conflictMsg += std::to_string(i + 1) + ". " + matchingApps[i].first + "\n";
+            // }
+            // response.putParam(kStatus, "Conflict");
+            // response.putParam(kBody, conflictMsg + "Specify the window to close by Window Name.");
+            // return false;
+
+            string conflictApps = app.conflictApps(matchingApps, pid);
+            response.putParam(kUseHtml, "true");
+            response.putParam(kBody, conflictApps);
             return false;
         }
         bool success = app.closeApplication(pid);
