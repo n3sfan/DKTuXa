@@ -1,7 +1,6 @@
 #include "Screenshot.h"
 
-bool SaveBMPFile(const std::string filename, HBITMAP hBitmap, HDC hDC, int width, int height)
-{
+bool SaveBMPFile(const std::string filename, HBITMAP hBitmap, HDC hDC, int width, int height) {
     BITMAPFILEHEADER bmpFileHeader;
     BITMAPINFOHEADER bmpInfoHeader;
     BITMAP bmp;
@@ -24,7 +23,7 @@ bool SaveBMPFile(const std::string filename, HBITMAP hBitmap, HDC hDC, int width
     ZeroMemory(&bi, sizeof(BITMAPINFO));
     bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bi.bmiHeader.biWidth = width;
-    bi.bmiHeader.biHeight = -height; // Hình ảnh lật ngược (âm để hiển thị đúng)
+    bi.bmiHeader.biHeight = -height; // Hình ảnh lật ngược
     bi.bmiHeader.biPlanes = 1;
     bi.bmiHeader.biBitCount = 24; // 24 bit màu
     bi.bmiHeader.biCompression = BI_RGB;
@@ -62,21 +61,25 @@ bool SaveBMPFile(const std::string filename, HBITMAP hBitmap, HDC hDC, int width
     return true;
 }
 
-void CaptureScreen(const std::string filename)
-{
-    // Lấy thông tin màn hình
+void CaptureScreen(const std::string filename) {
+    SetProcessDPIAware(); // Xử lý DPI Scaling
+
+    // Lấy thông tin màn hình ảo
+    int screenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    int screenTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    int screenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    int screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
     HDC hScreenDC = GetDC(NULL); // DC màn hình chính
     HDC hMemoryDC = CreateCompatibleDC(hScreenDC);
-
-    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    std::cout << "screenshot width: " << screenWidth << ", length: " << screenHeight << std::endl;
 
     // Tạo bitmap tương thích
     HBITMAP hBitmap = CreateCompatibleBitmap(hScreenDC, screenWidth, screenHeight);
     HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemoryDC, hBitmap);
 
     // Chụp màn hình
-    BitBlt(hMemoryDC, 0, 0, screenWidth, screenHeight, hScreenDC, 0, 0, SRCCOPY);
+    BitBlt(hMemoryDC, 0, 0, screenWidth, screenHeight, hScreenDC, screenLeft, screenTop, SRCCOPY);
 
     // Lưu bitmap thành file BMP
     if (SaveBMPFile(filename, hBitmap, hMemoryDC, screenWidth, screenHeight)) {
