@@ -411,8 +411,8 @@ bool Server::PCnameandIP(Request& request, Response& response) {
     std::string subAction = toLower(request.getParam(kSubAction));
     // Xử lý subAction "listpcname-ip"
     if (subAction == "list pc name-ip") {
-        std::string ip = getIPAddress();
-        std::string pcname = getPCName();
+        // std::string ip = getIPAddress();
+        // std::string pcname = getPCName();
 
         // Kiểm tra xem IP và PCName có hợp lệ không
         // if (ip.empty() || pcname.empty() || ip == "Unknown_IP" || pcname == "Unknown PC") {
@@ -429,7 +429,7 @@ bool Server::PCnameandIP(Request& request, Response& response) {
         //     return false;
         // }
 
-        response.putParam(kStatus, "Ok");
+        // response.putParam(kStatus, "Ok");
         response.putParam(kBody, PCInfo);
         return true;
     }
