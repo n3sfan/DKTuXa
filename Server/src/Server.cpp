@@ -209,13 +209,18 @@ bool Server::handleStatus(Request& request, Response& response){
 // Thang : File & Service
 // ---Start---
 bool Server::handleGetListFile(Request& request, Response& response){
-    File file;
-    string file_path = request.getParam("Path");
-    string file_list = file.getFiles(file_path);
-    response.putParam(kUseHtml, "true");
-    response.putParam(kBody, file_list);
-    return true;
-
+    try{
+        File file;
+        string file_path = request.getParam("Path");
+        string file_list = file.getFiles(file_path);
+        response.putParam(kUseHtml, "true");
+        response.putParam(kBody, file_list);
+        return true;
+    }catch(const std::exception& e){
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, std::string("Failed to list files.\n"));
+        return false;
+    }
 }
 
 bool Server::handleGetFile(Request& request, Response& response) {
@@ -266,11 +271,17 @@ bool Server::handleFile(Request& request, Response& response){
 
 
 bool Server::listServices(Request& request, Response& response){
-    Service service;
-    std::string list_service = service.listServices();
-    response.putParam(kUseHtml, "true");
-    response.putParam(kBody, list_service);
-    return true;
+    try{
+        Service service;
+        std::string list_service = service.listServices();
+        response.putParam(kUseHtml, "true");
+        response.putParam(kBody, list_service);
+        return true;
+    }catch(const std::exception& e){
+        response.putParam(kStatus, "Error");
+        response.putParam(kBody, std::string("Failed to list services.\n"));
+        return false;
+    }
 }
 
 bool Server::startService(Request& request, Response& response){
