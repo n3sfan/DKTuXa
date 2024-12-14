@@ -57,14 +57,34 @@ std::string File::getFiles(const std::string& directoryPath) {
 
     if (hFind == INVALID_HANDLE_VALUE) {
         std::cerr << "Cannot open directory: " << directoryPath << "\nError: " << GetLastError() << std::endl;
-        return ""; // Trả về chuỗi rỗng nếu không thể mở thư mục
+        return "<p>Error: Cannot open directory.</p>"; // Trả về HTML nếu không thể mở thư mục
     }
 
-    // Khởi tạo chuỗi kết quả
+    // Khởi tạo HTML kết quả
     std::ostringstream result;
     LARGE_INTEGER totalFileSize = {0}; // Tổng kích thước file
     int fileCount = 0, dirCount = 0;
-    result << "\n";
+
+    result << "<!DOCTYPE html><html><head><style>"
+           << "body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #e9ecef; color: #333; }"
+           << "div.table-container { background-color: #e9ecef; width: 80%; margin: 20px auto; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }"
+           << "table { width: 80%; border-collapse: collapse; font-family: Arial, sans-serif; margin: auto;}"
+           << "th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }"
+           << "th { background-color: #6c757d; color: white; font-size: 16px; }"
+           << "td { background-color: #fff;}"
+           << "tr:nth-child(even) { background-color: #f8f9fa; }"
+           << "tr:hover { background-color: #e2e6ea; }"
+           << "h1 { text-align: center; color: #495057; }"
+           << "p { text-align: center; color: #666; margin-top: 20px; }"
+           << "</style></head><body>";
+
+    result << "<h1>Directory Listing</h1>";
+    result << "<div class=\"table-container\">";
+    result << "<table>";
+
+    // Header của bảng
+    result << "<thead><tr><th>Date Modified</th><th>Size</th><th>Name</th></tr></thead>";
+    result << "<tbody>";
 
     do {
         // Bỏ qua các mục "." và ".."
@@ -79,15 +99,17 @@ std::string File::getFiles(const std::string& directoryPath) {
         SystemTimeToTzSpecificLocalTime(NULL, &stUTC, &stLocal);
 
         // Định dạng thời gian
-        result << std::setw(2) << std::setfill('0') << stLocal.wDay << "/"
-               << std::setw(2) << std::setfill('0') << stLocal.wMonth << "/"
-               << stLocal.wYear << "  "
-               << std::setw(2) << std::setfill('0') << stLocal.wHour << ":"
-               << std::setw(2) << std::setfill('0') << stLocal.wMinute << "    ";
+        std::ostringstream dateModified;
+        dateModified << std::setw(2) << std::setfill('0') << stLocal.wDay << "/"
+                     << std::setw(2) << std::setfill('0') << stLocal.wMonth << "/"
+                     << stLocal.wYear << " "
+                     << std::setw(2) << std::setfill('0') << stLocal.wHour << ":"
+                     << std::setw(2) << std::setfill('0') << stLocal.wMinute;
 
         // Kiểm tra xem là thư mục hay file
+        std::string sizeOrDir;
         if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-            result << "<DIR>          ";
+            sizeOrDir = "<span style='color: #28a745; font-weight: bold;'>&lt;DIR&gt;</span>";
             dirCount++;
         } else {
             LARGE_INTEGER fileSize;
@@ -95,7 +117,7 @@ std::string File::getFiles(const std::string& directoryPath) {
             fileSize.HighPart = findFileData.nFileSizeHigh;
 
             totalFileSize.QuadPart += fileSize.QuadPart;
-            result << std::setw(15) << std::setfill(' ') << std::right << fileSize.QuadPart << " ";
+            sizeOrDir = std::to_string(fileSize.QuadPart);
             fileCount++;
         }
 
@@ -103,8 +125,8 @@ std::string File::getFiles(const std::string& directoryPath) {
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
         std::string itemName = converter.to_bytes(findFileData.cFileName);
 
-        // Thêm tên file hoặc thư mục vào kết quả
-        result << itemName << "\n";
+        // Thêm hàng vào bảng
+        result << "<tr><td>" << dateModified.str() << "</td><td>" << sizeOrDir << "</td><td>" << itemName << "</td></tr>";
 
     } while (FindNextFileW(hFind, &findFileData) != 0);
 
@@ -115,12 +137,14 @@ std::string File::getFiles(const std::string& directoryPath) {
 
     FindClose(hFind);
 
-    // Thêm tổng kết
-    result << "               " << fileCount << " File(s)      " << totalFileSize.QuadPart << " bytes\n";
-    result << "               " << dirCount << " Dir(s)       " << GetFreeDiskSpace(directoryPath) << " bytes free\n";
+    // Đóng bảng và thêm tổng kết
+    result << "</tbody></table></div>";
+    result << "<p>" << fileCount << " File(s), " << dirCount << " Dir(s), Total size: " << totalFileSize.QuadPart << " bytes.</p>";
+    result << "</body></html>";
 
     return result.str();
 }
+
 
 
 

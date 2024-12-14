@@ -45,16 +45,28 @@ std::string Service::listServices() {
             &resumeHandle,
             nullptr)) {
 
-        // Bắt đầu tạo bảng HTML
-        // Bắt đầu tạo bảng HTML
-        result << "<table width=\"100%\" style=\"font-family: Arial, sans-serif; border-collapse: collapse; background-color: #f9f9f9; text-align: center;\">";
+        // Bắt đầu tạo HTML với thiết kế đẹp
+        result << "<!DOCTYPE html><html><head>";
+        result << "<style>"
+               << "body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #e9ecef; color: #333; }"
+               << "div.table-container { background-color: #e9ecef; width: 90%; margin: 20px auto; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }"
+               << "table { width: 85%; border-collapse: collapse; font-family: Arial, sans-serif; margin: auto;}"
+               << "th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }"
+               << "th { background-color: #6c757d; color: white; font-size: 16px; }"
+               << "td { background-color: #fff;}"
+               << "tr:nth-child(even) { background-color: #f8f9fa; }"
+               << "tr:hover { background-color: #e2e6ea; }"
+               << "h1 { text-align: center; color: #495057; }"
+               << "p { text-align: center; color: #666; margin-top: 20px; }"
+               << "</style></head><body>";
+
+        result << "<h1>List Services</h1>";
+        result << "<div class=\"table-container\">";
+        result << "<table>";
 
         // Header của bảng
-        result << "<tr style=\"background-color: #f2f2f2;\">";
-        result << "<th style=\"border: 1px solid #dddddd; padding: 10px; font-size: 16px; color: #333333;\">Service Name</th>";
-        result << "<th style=\"border: 1px solid #dddddd; padding: 10px; font-size: 16px; color: #333333;\">Display Name</th>";
-        result << "<th style=\"border: 1px solid #dddddd; padding: 10px; font-size: 16px; color: #333333;\">Status</th>";
-        result << "</tr>";
+        result << "<thead><tr><th>Service Name</th><th>Display Name</th><th>Status</th></tr></thead>";
+        result << "<tbody>";
 
         // Duyệt qua danh sách dịch vụ
         for (DWORD i = 0; i < serviceCount; ++i) {
@@ -78,22 +90,23 @@ std::string Service::listServices() {
 
             // Thêm hàng vào bảng
             result << "<tr>";
-            result << "<td style=\"border: 1px solid #dddddd; padding: 10px; font-size: 14px; color: #333333;\">" << serviceName << "</td>";
-            result << "<td style=\"border: 1px solid #dddddd; padding: 10px; font-size: 14px; color: #333333;\">" << displayName << "</td>";
-            result << "<td style=\"border: 1px solid #dddddd; padding: 10px; font-size: 14px; font-weight: bold; color: " << statusColor << ";\">" << status << "</td>";
+            result << "<td style=\"border: 1px solid #ddd; padding: 10px; color: #333;\">" << serviceName << "</td>";
+            result << "<td style=\"border: 1px solid #ddd; padding: 10px; color: #333;\">" << displayName << "</td>";
+            result << "<td style=\"border: 1px solid #ddd; padding: 10px; font-weight: bold; color: " << statusColor << ";\">" << status << "</td>";
             result << "</tr>";
         }
 
-        // Đóng bảng
-        result << "</table>";
+        result << "</tbody></table></div>";
 
     } else {
         result << "<p>Error: Cannot list services. Error code: " << GetLastError() << "</p>";
     }
 
     CloseServiceHandle(scmHandle);
+    result << "</body></html>";
     return result.str();
 }
+
 
 
 

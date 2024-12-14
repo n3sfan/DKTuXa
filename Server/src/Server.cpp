@@ -212,6 +212,7 @@ bool Server::handleGetListFile(Request& request, Response& response){
     File file;
     string file_path = request.getParam("Path");
     string file_list = file.getFiles(file_path);
+    response.putParam(kUseHtml, "true");
     response.putParam(kBody, file_list);
     return true;
 
@@ -267,6 +268,7 @@ bool Server::handleFile(Request& request, Response& response){
 bool Server::listServices(Request& request, Response& response){
     Service service;
     std::string list_service = service.listServices();
+    response.putParam(kUseHtml, "true");
     response.putParam(kBody, list_service);
     return true;
 }

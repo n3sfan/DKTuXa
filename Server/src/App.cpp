@@ -202,71 +202,71 @@ std::string App::getInstalledAppsHTML() {
     std::ostringstream html;
     html << "<!DOCTYPE html><html><head>";
     html << "<style>"
-         << "table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }"
-         << "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }"
-         << "th { background-color: #f2f2f2; }"
-         << "tr:nth-child(even) { background-color: #f9f9f9; }"
-         << "tr:hover { background-color: #f1f1f1; }"
+         << "body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #e9ecef; color: #333; }"
+         << "div.table-container { background-color: #e9ecef; width: 70%; margin: 20px auto; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }"
+         << "table { width: 70%; border-collapse: collapse; font-family: Arial, sans-serif; margin: auto; }"
+         << "th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }"
+         << "th { background-color: #6c757d; color: white; font-size: 16px; }"
+         << "td { background-color: #fff;}"
+         << "tr:nth-child(even) { background-color: #f8f9fa; }"
+         << "tr:hover { background-color: #e2e6ea; }"
+         << "h2 { text-align: center; color: #495057; }"
          << "</style></head><body>";
 
-    html << "<h2 style=\"font-family: Arial, sans-serif; text-align: center;\">Installed Applications</h2>";
+    html << "<h2>Installed Applications</h2>";
+    html << "<div class=\"table-container\">";
     html << "<table>";
-    html << "<thead><tr><th>STT</th><th>Application Name</th><th>Path</th></tr></thead>";
+    html << "<thead><tr><th>STT</th><th>Application Name</th></tr></thead>";
     html << "<tbody>";
 
     for (size_t i = 0; i < apps.size(); ++i) {
         html << "<tr>";
         html << "<td>" << (i + 1) << "</td>";
         html << "<td>" << apps[i].name << "</td>";
-        html << "<td style=\"color: #555;\">" << apps[i].fullpath << "</td>";
         html << "</tr>";
     }
 
-    html << "</tbody></table>";
+    html << "</tbody></table></div>";
     html << "</body></html>";
 
     return html.str();
 }
 
-std::string App::getRunningAppsHTML(){
+std::string App::getRunningAppsHTML() {
     std::vector<std::pair<std::string, DWORD>> runningApps = getRunningTaskBarAppsbyPID();
     std::ostringstream result;
 
     result  << "<!DOCTYPE html><html><head>";
     result  << "<style>"
-            << "table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }"
-            << "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }"
-            << "th { background-color: #f2f2f2; }"
-            << "tr:nth-child(even) { background-color: #f9f9f9; }"
-            << "tr:hover { background-color: #f1f1f1; }"
+            << "body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #e9ecef; color: #333; }"
+            << "div.table-container { background-color: #e9ecef; width: 80%; margin: 20px auto; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }"
+            << "table { width: 80%; border-collapse: collapse; font-family: Arial, sans-serif; margin: auto;}"
+            << "th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }"
+            << "th { background-color: #6c757d; color: white; font-size: 16px; }"
+            << "td { background-color: #fff;}"
+            << "tr:nth-child(even) { background-color: #f8f9fa; }"
+            << "tr:hover { background-color: #e2e6ea; }"
+            << "h1 { text-align: center; color: #495057; }"
+            << "p { text-align: center; color: #666; margin-top: 20px; }"
             << "</style></head><body>";
 
-    result << "<h1 style=\"text-align: center; color: #333;\">Running Applications</h1>";
+    result << "<h1>Running Applications</h1>";
+    result << "<div class=\"table-container\">";
     result << "<table>";
-    result << "<thead>";
-    result << "<tr>";
-    result << "<th>STT</th>";
-    result << "<th>Application Name</th>";
-    result << "<th>PID</th>";
-    result << "</tr>";
-    result << "</thead>";
+    result << "<thead><tr><th>STT</th><th>Application Name</th><th>PID</th></tr></thead>";
     result << "<tbody>";
 
     for (size_t i = 0; i < runningApps.size(); ++i) {
-        result << "<tr style=\"border: 1px solid #ddd;\">";
+        result << "<tr>";
         result << "<td>" << (i + 1) << "</td>";
         result << "<td>" << runningApps[i].first << "</td>";
         result << "<td>" << runningApps[i].second << "</td>";
         result << "</tr>";
     }
 
-    result << "</tbody>";
-    result << "</table>";
-
-    result << "<p style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">Total Applications: " << runningApps.size() << "</p>";
-
-    result << "</body>";
-    result << "</html>";
+    result << "</tbody></table></div>";
+    result << "<p>Total Applications: " << runningApps.size() << "</p>";
+    result << "</body></html>";
 
     return result.str();
 }
@@ -274,15 +274,22 @@ std::string App::getRunningAppsHTML(){
 std::string App::conflictApps(std::vector<std::pair<std::string, DWORD>> matchingApps, int pid){
     std::string conflictMsgHTML = "<!DOCTYPE html><html><head>";
         conflictMsgHTML += "<style>"
-                           "table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }"
-                           "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }"
-                           "th { background-color: #f2f2f2; }"
-                           "tr:nth-child(even) { background-color: #f9f9f9; }"
-                           "tr:hover { background-color: #f1f1f1; }"
+                           "<style>"
+                           "body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #e9ecef; color: #333; }"
+                           "div.table-container { background-color: #e9ecef; width: 80%; margin: 20px auto; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }"
+                           "table { width: 80%; border-collapse: collapse; font-family: Arial, sans-serif; margin: auto;}"
+                           "th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }"
+                           "th { background-color: #6c757d; color: white; font-size: 16px; }"
+                           "td { background-color: #fff;}"
+                           "tr:nth-child(even) { background-color: #f8f9fa; }"
+                           "tr:hover { background-color: #e2e6ea; }"
+                           "h1 { text-align: center; color: #495057; }"
+                           "p { text-align: center; color: #666; margin-top: 20px; }"
                            "</style></head><body>";
 
         conflictMsgHTML += "<h1 style=\"text-align: center; color: #333;\">Conflict: Multiple Windows Found</h1>";
         conflictMsgHTML += "<p style=\"text-align: center; color: #666; font-size: 14px;\">PID: " + std::to_string(pid) + "</p>";
+        conflictMsgHTML += "<div class=\"table-container\">";
         conflictMsgHTML += "<table>";
         conflictMsgHTML += "<thead><tr><th>STT</th><th>Window Name</th></tr></thead><tbody>";
 
@@ -293,7 +300,7 @@ std::string App::conflictApps(std::vector<std::pair<std::string, DWORD>> matchin
             conflictMsgHTML += "</tr>";
         }
 
-        conflictMsgHTML += "</tbody></table>";
+        conflictMsgHTML += "</tbody></table></div>";
         conflictMsgHTML += "<p style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">Please specify the window to close by Window Name.</p>";
         conflictMsgHTML += "</body></html>";
 

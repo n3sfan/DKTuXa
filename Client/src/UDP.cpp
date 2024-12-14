@@ -315,14 +315,21 @@ void listenToInboxUDP() {
 std::string pcNameIPHTML(std::map<std::string, std::string> pcNameIPMap){
     std::string pcNameIPHTML = "<!DOCTYPE html><html><head>";
     pcNameIPHTML += "<style>"
-                    "table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; }"
-                    "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }"
-                    "th { background-color: #f2f2f2; }"
-                    "tr:nth-child(even) { background-color: #f9f9f9; }"
-                    "tr:hover { background-color: #f1f1f1; }"
+                    "body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #e9ecef; color: #333; }"
+                    "div.table-container { background-color: #e9ecef; width: 70%; margin: 20px auto; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }"
+                    "table { width: 80%; border-collapse: collapse; font-family: Arial, sans-serif; margin: auto;}"
+                    "th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }"
+                    "th { background-color: #6c757d; color: white; font-size: 16px; }"
+                    "td { background-color: #fff;}"
+                    "tr:nth-child(even) { background-color: #f8f9fa; }"
+                    "tr:hover { background-color: #e2e6ea; }"
+                    "h1 { text-align: center; color: #495057; }"
+                    "p { text-align: center; color: #666; margin-top: 20px; }"
                     "</style></head><body>";
 
+
     pcNameIPHTML += "<h1 style=\"text-align: center; color: #333;\">PC Name and IP Address</h1>";
+    pcNameIPHTML += "<div class=\"table-container\">";
     pcNameIPHTML += "<table>";
     pcNameIPHTML += "<thead><tr><th>STT</th><th>PC Name</th><th>IP Address</th></tr></thead><tbody>";
 
@@ -335,7 +342,7 @@ std::string pcNameIPHTML(std::map<std::string, std::string> pcNameIPMap){
         pcNameIPHTML += "</tr>";
     }
 
-    pcNameIPHTML += "</tbody></table>";
+    pcNameIPHTML += "</tbody></table></div>";
     pcNameIPHTML += "<p style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">Total PCs: " + std::to_string(pcNameIPMap.size()) + "</p>";
     pcNameIPHTML += "</body></html>";
 
