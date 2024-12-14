@@ -130,9 +130,9 @@ void Request::toMailString(string &subject, string &body) const {
         // body += pr.second;
         // body += "\r\n";
         if (pr.first == kBody){
-            body += pr.first;
-            body += ": ";
-            body += "\n";
+            // body += pr.first;
+            // body += ": ";
+            // body += "\n";
             body += pr.second;
             body += "\r\n";
         }
