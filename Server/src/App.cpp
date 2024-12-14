@@ -272,39 +272,41 @@ std::string App::getRunningAppsHTML() {
 }
 
 std::string App::conflictApps(std::vector<std::pair<std::string, DWORD>> matchingApps, int pid){
-    std::string conflictMsgHTML = "<!DOCTYPE html><html><head>";
-        conflictMsgHTML += "<style>"
-                           "<style>"
-                           "body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #e9ecef; color: #333; }"
-                           "div.table-container { background-color: #e9ecef; width: 80%; margin: 20px auto; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }"
-                           "table { width: 80%; border-collapse: collapse; font-family: Arial, sans-serif; margin: auto;}"
-                           "th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }"
-                           "th { background-color: #6c757d; color: white; font-size: 16px; }"
-                           "td { background-color: #fff;}"
-                           "tr:nth-child(even) { background-color: #f8f9fa; }"
-                           "tr:hover { background-color: #e2e6ea; }"
-                           "h1 { text-align: center; color: #495057; }"
-                           "p { text-align: center; color: #666; margin-top: 20px; }"
-                           "</style></head><body>";
+    std::ostringstream html;
 
-        conflictMsgHTML += "<h1 style=\"text-align: center; color: #333;\">Conflict: Multiple Windows Found</h1>";
-        conflictMsgHTML += "<p style=\"text-align: center; color: #666; font-size: 14px;\">PID: " + std::to_string(pid) + "</p>";
-        conflictMsgHTML += "<div class=\"table-container\">";
-        conflictMsgHTML += "<table>";
-        conflictMsgHTML += "<thead><tr><th>STT</th><th>Window Name</th></tr></thead><tbody>";
+    html << "<!DOCTYPE html><html><head>";
+    html << "<style>"
+         << "body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #e9ecef; color: #333; }"
+         << "div.table-container { background-color: #e9ecef; width: 80%; margin: 20px auto; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }"
+         << "table { width: 80%; border-collapse: collapse; font-family: Arial, sans-serif; margin: auto; }"
+         << "th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }"
+         << "th { background-color: #6c757d; color: white; font-size: 16px; }"
+         << "td { background-color: #fff; }"
+         << "tr:nth-child(even) { background-color: #f8f9fa; }"
+         << "tr:hover { background-color: #e2e6ea; }"
+         << "h1 { text-align: center; color: #495057; }"
+         << "p { text-align: center; color: #666; margin-top: 20px; }"
+         << "</style></head><body>";
 
-        for (size_t i = 0; i < matchingApps.size(); ++i) {
-            conflictMsgHTML += "<tr>";
-            conflictMsgHTML += "<td>" + std::to_string(i + 1) + "</td>";
-            conflictMsgHTML += "<td>" + matchingApps[i].first + "</td>";
-            conflictMsgHTML += "</tr>";
-        }
+    html << "<h1 style=\"text-align: center; color: #333;\">Conflict: Multiple Windows Found</h1>";
+    html << "<p style=\"text-align: center; color: #666; font-size: 14px;\">PID: " << pid << "</p>";
+    html << "<div class=\"table-container\">";
+    html << "<table>";
+    html << "<thead><tr><th>STT</th><th>Window Name</th></tr></thead>";
+    html << "<tbody>";
 
-        conflictMsgHTML += "</tbody></table></div>";
-        conflictMsgHTML += "<p style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">Please specify the window to close by Window Name.</p>";
-        conflictMsgHTML += "</body></html>";
+    for (size_t i = 0; i < matchingApps.size(); ++i) {
+        html << "<tr>";
+        html << "<td>" << (i + 1) << "</td>";
+        html << "<td>" << matchingApps[i].first << "</td>";
+        html << "</tr>";
+    }
 
-        return conflictMsgHTML;
+    html << "</tbody></table></div>";
+    html << "<p style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">Please specify the window to close by Window Name.</p>";
+    html << "</body></html>";
+
+    return html.str();
 }
 
 bool App::runApplication(const std::string &executablePath){
