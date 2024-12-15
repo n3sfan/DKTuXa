@@ -392,7 +392,7 @@ bool Server::screenshot(Request& request, Response &response){
 
 bool Server::getVideoByWebcam(Request& request, Response &response) {
     Webcam webcam;
-    const std::string filename = "../build/files/video.mp4";
+    const std::string filename = "files/video.mp4";
     
     while (true){
         std::string subaction = request.getParam(kSubAction);
