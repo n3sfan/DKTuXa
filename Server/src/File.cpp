@@ -1,7 +1,7 @@
 #include "File.h"
 
 bool File::getFile(const std::string& filePath) {
-    const std::string targetDirectory = "../build/files/";
+    const std::string targetDirectory = "files/";
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 
     // Chuyển đổi đường dẫn
@@ -22,8 +22,7 @@ bool File::getFile(const std::string& filePath) {
     }
 
     // Tạo thư mục đích
-    CreateDirectoryW(L"../build", NULL);
-    CreateDirectoryW(L"../build/files", NULL);
+    CreateDirectoryW(L"files", NULL);
 
     // Sao chép file
     if (!CopyFileW(sourceFilePathW.c_str(), targetFilePathW.c_str(), FALSE)) {

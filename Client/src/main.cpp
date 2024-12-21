@@ -5,6 +5,7 @@
 #include <thread>
 #include <cstring>
 #include <memory>
+#include <stdexcept>
 
 #include <winsock2.h>
 #include <windows.h>
@@ -45,7 +46,7 @@ int send(Request &request, Response &response) {
 
     // Resolve the server address and port
     string host;
-    if (!request.getParam(kIPAttr).empty()){
+    if (!request.getParam(kIPAttr).empty()) {
         host = request.getParam(kIPAttr);
     }
     else if (!request.getParam(kPcName).empty()){
@@ -147,61 +148,79 @@ void listenToInbox() {
 
         vector<string> mailIds = split(str.substr(string("* SEARCH ").size()), " ");
         for (string &mailId : mailIds) {
-            mailId = trim(mailId);
-            if (mailId.size() == 0)
-                continue;
-            
-            string mailHeaders = "", mailBody = "";
-            ok = IMAPClient.GetString(mailId, mailHeaders);
-            ok = IMAPClient.GetString(mailId, mailBody, true); 
-            if (!ok) {
-                // TODO NOTIFY
-                continue;
-            } 
+            try {
+                mailId = trim(mailId);
+                if (mailId.size() == 0)
+                    continue;
+                
+                string mailHeaders = "", mailBody = "";
+                ok = IMAPClient.GetString(mailId, mailHeaders);
+                ok = IMAPClient.GetString(mailId, mailBody, true); 
+                if (!ok) {
+                    // TODO NOTIFY
+                    continue;
+                } 
 
-            // cout << mailHeaders << " headers5\n";
-            // cout << mailBody << " body\n";
+                // cout << mailHeaders << " headers5\n";
+                // cout << mailBody << " body\n";
 
-            string mailFrom, mailSubject, mailMessageId;
-            Request request;
-            request.parseFromMail(mailHeaders, mailBody, mailFrom, mailSubject, mailMessageId);
+                string mailFrom, mailSubject, mailMessageId;
+                Request request;
+                request.parseFromMail(mailHeaders, mailBody, mailFrom, mailSubject, mailMessageId);
 
-            if (!isPassWordValid(request.getParam(kPassWord))){
-                // TODO NOTIFY
-                cout << "Invalid password.\n";
-                continue;
+                if (!isPassWordValid(request.getParam(kPassWord))){
+                    // TODO NOTIFY
+                    cout << "Invalid password.\n";
+                    continue;
+                }
+                if (request.getAction() == ACTION_INVALID) {
+                    // TODO NOTIFY
+                    continue;
+                }
+                
+                cout << "Processing request, action " << request.getAction() << "\n";
+                Response response;
+
+                if (request.getAction() == ACTION_BROADCAST) {
+                     if (sendUDP(request, response) != 0) {
+                        // TODO ERROR
+                        continue;
+                    }
+
+                    // List PC Name and IP Address
+                    std::string valueBodyBroadcast = pcNameIPHTML(pcNameIPMap);
+                    response.putParam(kUseHtml, "true");
+                    response.putParam(kBody, valueBodyBroadcast);
+                } else {
+                    if (send(request, response) != 0) {
+                        // TODO ERROR
+                        continue;
+                    }
+                }
+               
+                // Send mail response
+                string mailStr; 
+                response.toMailString(mailSubject, mailStr);
+                // response.saveFiles();
+
+                // cout << mailHeaders << " headers\n";
+                // cout << mailMessageId << " mid\n";
+
+                CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
+                SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
+                SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass, 
+                                    CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
+                SMTPClient.SendMIME(mailFrom, {"References: " + mailMessageId, "In-Reply-To: " + mailMessageId, "Subject: Re: " + mailSubject}, mailStr, response.getFiles(), toLower(response.getParam(kUseHtml)) == "true");
+                SMTPClient.CleanupSession();
+                
+                // response.deleteFiles();'
+
+                // cout << "---------\nResponse: " << response << "\n-------------\n";
+                // Add to queue
+                // responsesQueue.push();
+            } catch (std::exception& e) {
+                std::cerr << e.what() << "\n";
             }
-            if (request.getAction() == ACTION_INVALID) {
-                // TODO NOTIFY
-                continue;
-            }
-            cout << "Processing request, action " << request.getAction() << "\n";
-            Response response;
-            if (send(request, response) != 0) {
-                // TODO ERROR
-                continue;
-            }
-            
-            // Send mail response
-            string mailStr; 
-            response.toMailString(mailSubject, mailStr);
-            // response.saveFiles();
-
-            cout << mailHeaders << " headers\n";
-            cout << mailMessageId << " mid\n";
-
-            CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
-            SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
-            SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass, 
-                                CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
-            SMTPClient.SendMIME(mailFrom, {"References: " + mailMessageId, "In-Reply-To: " + mailMessageId, "Subject: Re: " + mailSubject}, mailStr, response.getFiles(), toLower(response.getParam(kUseHtml)) == "true");
-            SMTPClient.CleanupSession();
-            
-            // response.deleteFiles();'
-
-            // cout << "---------\nResponse: " << response << "\n-------------\n";
-            // Add to queue
-            // responsesQueue.push();
         }   
 
         IMAPClient.CleanupSession();
@@ -222,16 +241,8 @@ int main() {
     // Create folder "files"
     CreateDirectoryA("files", NULL);
     
-    listenToInboxUDP();
+    // listenToInboxUDP();
     listenToInbox();
-    // Request request;
-    // Response response;
-
-    // request.setAction(ACTION_BROADCAST);
-
-    // sendUDP(request, response);
-
-    // cout << response << "\n";
 
     WSACleanup();
 

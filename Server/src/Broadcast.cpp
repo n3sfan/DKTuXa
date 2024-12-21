@@ -54,7 +54,5 @@ std::string getIPAddress() {
 std::string getPCInfo() {
     std::string pcName = getPCName();
     std::string ip = getIPAddress();
-    return pcName + " - " + ip;
+    return pcName + "-" + ip;
 }
-
-

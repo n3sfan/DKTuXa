@@ -1,3 +1,7 @@
+/**
+ * https://github.com/System-Glitch/SHA256
+ */
+
 #include "SHA256.h"
 #include <cstring>
 #include <sstream>

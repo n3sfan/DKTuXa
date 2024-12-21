@@ -1,5 +1,8 @@
 #ifndef SHA256_H
 #define SHA256_H
+/**
+ * https://github.com/System-Glitch/SHA256
+ */
 
 #include <string>
 #include <array>

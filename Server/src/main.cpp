@@ -17,13 +17,13 @@
 #include "common/Request.h"
 #include "common/Utils.h"
 #include "common/FileUpDownloader.h"
-#include "UDPServer.h"
 
 #define DEFAULT_PORT "5555"
 #define DEFAULT_PORT2 "5556"
 
 SOCKET ListenSocket = INVALID_SOCKET;
 std::atomic_bool stopServer;
+std::atomic_bool serverFinished(false);
 
 void closeClientSocket(SOCKET ClientSocket) {
     int iResult = shutdown(ClientSocket, SD_SEND);

@@ -33,7 +33,7 @@ bool Server::keylog(Request& request, Response &response) {
 
         // Gui file TODO DELETE
         // fin = std::ifstream("tmt.txt", fstream::binary);
-        response.putParam(kFilePrefix + "tmt.txt", "");
+        // response.putParam(kFilePrefix + "tmt.txt", "");
     }  
 
     return true;
@@ -229,7 +229,7 @@ bool Server::handleGetFile(Request& request, Response& response) {
     std::istringstream pathStream(paths); // Dùng istringstream để tách các đường dẫn
     std::string file_path;
 
-    while (std::getline(pathStream, file_path, ' ')) { // Duyệt từng đường dẫn cách nhau bởi khoảng trắng
+    while (std::getline(pathStream, file_path, '\n')) { // Duyệt từng đường dẫn cách nhau bởi khoảng trắng
         std::string file_name = file_path.substr(file_path.find_last_of("/\\") + 1);
         file.getFile(file_path); // Sao chép file từ đường dẫn
         if (file_name.empty()) {
@@ -401,7 +401,7 @@ bool Server::getVideoByWebcam(Request& request, Response &response) {
         if (subaction == "Start") {
             bool started = webcam.StartWebcamRecording(filename);
             if (!started) {
-                std::cerr << "Error: Unable to start recording." << std::endl;
+                // std::cerr << "Error: Unable to start recording." << std::endl;
                 return -1;
             }
         }

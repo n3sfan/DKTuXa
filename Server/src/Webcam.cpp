@@ -7,7 +7,7 @@ cv::VideoWriter writer;
 
 bool Webcam::StartWebcamRecording(const std::string& filename) {
     if (isRecording) {
-        std::cerr << "Error: Recording is already in progress." << std::endl;
+        // std::cerr << "Error: Recording is already in progress." << std::endl;
         return false;
     }
 

@@ -160,6 +160,10 @@ void Request::parseFromMail(const string &mailHeaders, const string &mailBody, s
     pos2 = mailHeaders.find("\r\n", pos + 9 + 1);
     mailSubject = mailHeaders.substr(pos + 9, pos2 - pos - 1); 
     action = ::getAction(mailSubject);
+
+    if (action == ACTION_INVALID)
+        return;
+
     // cout << mailSubject << " mailSubject\n" << action << " action\n";
 
     pos = mailHeaders.find("Message-ID: ");

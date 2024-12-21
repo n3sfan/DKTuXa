@@ -8,6 +8,8 @@
 #include <thread>
 #include <chrono>
 
+#include "SHA256.h"
+
 const int kTimeoutMillis = 5000;
 
 void setSockOptions(SOCKET socket) {
@@ -165,14 +167,23 @@ void Uploader::uploadFile(SOCKET socket, const std::string &filename) {
         std::cout << "DEBUG: Error opening file " << filename << "\n";
         return;
     }
+    
+    SHA256 digest;
+    std::string digestBuffer;
+    digestBuffer.resize(1024);
 
     fin.seekg(0, std::ios::end);
+    // while (fin.read(digestBuffer.data(), 1024)) {
+    //     digest.update(digestBuffer);
+    // } 
+
     int fileSize = (int)fin.tellg();
     fin.seekg(0, std::ios::beg);
     // fin.clear();
 
-    std::string checksum = "12345678901234567890123456789012"; // TODO`
     
+    std::string checksum = "12345678901234567890123456789012"; // TODO`
+
     // Upload file
     int headerSize = 4 + 4 + filename.size() + 4 + 4 + 32;
     PacketBuffer packetBuffer(socket, false);

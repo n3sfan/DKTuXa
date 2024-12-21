@@ -5,6 +5,7 @@
 #include <atomic>
 #include <fstream>
 #include <thread>
+#include <string>
 
 const int kBufSize = 8192;
 
