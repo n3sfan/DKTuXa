@@ -215,7 +215,7 @@ void listenToInboxUDP() {
     while (true) {
         CIMAPClient IMAPClient([](const std::string& s){ cout << s << "\n"; return; });  
         IMAPClient.SetCertificateFile("curl-ca-bundle.crt");
-        IMAPClient.InitSession("imap.gmail.com:993", "quangminhcantho43@gmail.com", kAppPass,
+        IMAPClient.InitSession("imap.gmail.com:993", kEmail, kAppPass,
                 CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
        
         str = "";
@@ -289,7 +289,7 @@ void listenToInboxUDP() {
 
             CSMTPClient SMTPClient([](const std::string& s){ cout << s << "\n"; return; });  
             SMTPClient.SetCertificateFile("curl-ca-bundle.crt");
-            SMTPClient.InitSession("smtp.gmail.com:465", "quangminhcantho43@gmail.com", kAppPass,
+            SMTPClient.InitSession("smtp.gmail.com:465", kEmail, kAppPass,
 			                    CMailClient::SettingsFlag::ALL_FLAGS, CMailClient::SslTlsFlag::ENABLE_SSL);
             SMTPClient.SendMIME(mailFrom, {"References: " + mailMessageId, "In-Reply-To: " + mailMessageId, "Subject: Re: " + mailSubject}, mailStr, response.getFiles(), toLower(response.getParam(kUseHtml)) == "true");
             SMTPClient.CleanupSession();

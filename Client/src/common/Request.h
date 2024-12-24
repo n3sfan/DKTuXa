@@ -19,6 +19,7 @@ const std::string kFilePrefix = "_File";
 const std::string kPassWord = "Password"; // Trường Password
 const std::string kPcName = "PC Name"; // Trường nhận tên PC Name
 
+const std::string kEmail = "quangminhcantho43@gmail.com";
 const std::string kAppPass = "sigc xldk cuzd bjhr";
 
 
